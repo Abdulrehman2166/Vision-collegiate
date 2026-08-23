@@ -229,7 +229,7 @@ export default function StudentsScreen() {
         contentContainerStyle={styles.filterContent}>
         {[{ id: null, name: 'All' }, ...batches].map((b) => (
           <TouchableOpacity
-            key={b.id ?? 'all'}
+            key={`filter-${b.id ?? 'all'}`}
             onPress={() => setFBatch(b.id)}
             style={[styles.chip, fBatch === b.id && styles.chipActive]}
           >
@@ -404,7 +404,7 @@ export default function StudentsScreen() {
               </TouchableOpacity>
               {batches.map((b) => (
                 <TouchableOpacity
-                  key={b.id}
+                  key={`pick-${b.id}`}
                   onPress={() => setField('batch_id', String(b.id))}
                   style={[styles.chip, form.batch_id === String(b.id) && styles.chipActive]}
                 >
