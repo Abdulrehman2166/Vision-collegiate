@@ -19,6 +19,7 @@ const navItems = [
   { href: '/attendance', label: 'Attendance', icon: CalendarCheck,   roles: ['admin','teacher'] },
   { href: '/tests',      label: 'Tests',      icon: BookOpen,        roles: ['admin','teacher','parent','student'] },
   { href: '/analytics',  label: 'Analytics',  icon: BarChart3,       roles: ['admin','teacher'] },
+  { href: '/users',      label: 'Users',      icon: Users,           roles: ['admin'] },
   { href: '/whatsapp',   label: 'WhatsApp',   icon: MessageSquare,   roles: ['admin'] },
 ];
 

@@ -100,3 +100,42 @@ export async function logout(_req: Request, res: Response) {
   res.clearCookie('token');
   res.json({ success: true, message: 'Logged out' });
 }
+
+/** GET /api/v1/auth/users  (admin only) */
+export async function getUsers(req: Request, res: Response, next: NextFunction) {
+  try {
+    const page   = Math.max(1, parseInt(req.query.page  as string) || 1);
+    const limit  = Math.min(100, parseInt(req.query.limit as string) || 20);
+    const offset = (page - 1) * limit;
+
+    const countRes = await pool.query('SELECT COUNT(*) FROM users');
+    const total    = parseInt(countRes.rows[0].count);
+
+    const result = await pool.query(
+      `SELECT id, name, email, role, phone, is_active, created_at
+       FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+      [limit, offset],
+    );
+
+    res.json({
+      success: true,
+      data: result.rows,
+      meta: { total, page, limit, pages: Math.ceil(total / limit) },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** DELETE /api/v1/auth/users/:id  (admin only) */
+export async function deleteUser(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params;
+    if (parseInt(id) === req.user!.id) throw createError('Cannot delete your own account', 400);
+    const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
+    if (!result.rows.length) throw createError('User not found', 404);
+    res.json({ success: true, message: 'User deleted' });
+  } catch (err) {
+    next(err);
+  }
+}
