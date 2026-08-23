@@ -11,10 +11,15 @@ export function Spinner({ size = 'md', className }: SpinnerProps) {
   return (
     <div
       className={clsx(
-        'border-2 border-brand-500 border-t-transparent rounded-full animate-spin',
+        'rounded-full animate-spin',
         sizeMap[size],
         className,
       )}
+      style={{
+        background: 'conic-gradient(from 0deg, transparent 0deg, #6366f1 360deg)',
+        WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 2px))',
+        mask: 'radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 2px))',
+      }}
       role="status"
       aria-label="Loading"
     />
@@ -23,10 +28,21 @@ export function Spinner({ size = 'md', className }: SpinnerProps) {
 
 export function PageLoader() {
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="flex flex-col items-center gap-4">
-        <Spinner size="lg" />
-        <p className="text-sm text-slate-500 dark:text-slate-400">Loading…</p>
+    <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-[#08081a]">
+      <div className="flex flex-col items-center gap-5">
+        {/* Logo mark */}
+        <div className="relative">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-purple-600
+                          flex items-center justify-center shadow-glow animate-float">
+            <span className="text-2xl font-black text-white">V</span>
+          </div>
+          <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-brand-500 to-purple-600
+                          opacity-20 blur-md -z-10" />
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <Spinner size="lg" />
+          <p className="text-sm text-slate-500 dark:text-slate-500 font-medium">Loading…</p>
+        </div>
       </div>
     </div>
   );

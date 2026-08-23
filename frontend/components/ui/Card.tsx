@@ -4,18 +4,18 @@ interface CardProps {
   children: React.ReactNode;
   className?: string;
   glass?: boolean;
-  /** Click handler – renders as a button-like element with hover state */
+  glow?: boolean;
   onClick?: () => void;
 }
 
-export function Card({ children, className, glass = false, onClick }: CardProps) {
-  const base = glass ? 'glass-card' : 'card';
+export function Card({ children, className, glass = false, glow = false, onClick }: CardProps) {
   return (
     <div
       className={clsx(
-        base,
+        glass ? 'glass-card' : 'card',
         'p-6 animate-fade-in',
-        onClick && 'cursor-pointer hover:shadow-md transition-shadow duration-200',
+        glow && 'dark:shadow-glow-sm',
+        onClick && 'cursor-pointer hover:shadow-card-hover transition-all duration-200 hover:-translate-y-0.5',
         className,
       )}
       onClick={onClick}
@@ -27,44 +27,69 @@ export function Card({ children, className, glass = false, onClick }: CardProps)
   );
 }
 
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+
 interface StatCardProps {
   title: string;
   value: string | number;
   icon?: React.ReactNode;
   trend?: { value: number; label: string };
-  color?: 'blue' | 'green' | 'red' | 'yellow' | 'purple';
+  color?: 'blue' | 'green' | 'red' | 'yellow' | 'purple' | 'indigo';
+  gradient?: boolean;
 }
 
-const colorMap = {
-  blue:   'bg-blue-50   dark:bg-blue-900/20   text-blue-600   dark:text-blue-400',
-  green:  'bg-green-50  dark:bg-green-900/20  text-green-600  dark:text-green-400',
-  red:    'bg-red-50    dark:bg-red-900/20    text-red-600    dark:text-red-400',
-  yellow: 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400',
-  purple: 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
+const colorConfig = {
+  blue:   { icon: 'text-blue-500',   bg: 'bg-blue-500/10',   border: 'border-blue-500/20',   glow: 'rgba(59,130,246,0.2)' },
+  green:  { icon: 'text-emerald-500',bg: 'bg-emerald-500/10',border: 'border-emerald-500/20',glow: 'rgba(16,185,129,0.2)' },
+  red:    { icon: 'text-red-500',    bg: 'bg-red-500/10',    border: 'border-red-500/20',    glow: 'rgba(239,68,68,0.2)' },
+  yellow: { icon: 'text-amber-500',  bg: 'bg-amber-500/10',  border: 'border-amber-500/20',  glow: 'rgba(245,158,11,0.2)' },
+  purple: { icon: 'text-purple-500', bg: 'bg-purple-500/10', border: 'border-purple-500/20', glow: 'rgba(168,85,247,0.2)' },
+  indigo: { icon: 'text-brand-500',  bg: 'bg-brand-500/10',  border: 'border-brand-500/20',  glow: 'rgba(99,102,241,0.2)' },
 };
 
-export function StatCard({ title, value, icon, trend, color = 'blue' }: StatCardProps) {
+export function StatCard({ title, value, icon, trend, color = 'indigo' }: StatCardProps) {
+  const cfg = colorConfig[color];
+
   return (
-    <Card>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
-          <p className="mt-1 text-3xl font-bold text-slate-900 dark:text-white">{value}</p>
+    <div className={clsx(
+      'card p-5 relative overflow-hidden group',
+      'hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200',
+      'animate-fade-in',
+    )}>
+      {/* Subtle gradient glow in corner */}
+      <div
+        className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl pointer-events-none"
+        style={{ background: cfg.glow }}
+      />
+
+      <div className="flex items-start justify-between relative">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-500 mb-2">
+            {title}
+          </p>
+          <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+            {value}
+          </p>
           {trend && (
             <p className={clsx(
-              'mt-1 text-xs font-medium',
-              trend.value >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400',
+              'mt-1.5 text-xs font-semibold flex items-center gap-1',
+              trend.value >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400',
             )}>
-              {trend.value >= 0 ? '▲' : '▼'} {Math.abs(trend.value)}% {trend.label}
+              <span>{trend.value >= 0 ? '↑' : '↓'}</span>
+              {Math.abs(trend.value)}% {trend.label}
             </p>
           )}
         </div>
         {icon && (
-          <div className={clsx('p-3 rounded-xl', colorMap[color])}>
+          <div className={clsx(
+            'flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center',
+            cfg.bg, cfg.icon,
+            'border', cfg.border,
+          )}>
             {icon}
           </div>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

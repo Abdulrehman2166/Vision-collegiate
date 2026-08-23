@@ -37,7 +37,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
     try { await api.post('/auth/logout'); } catch { /* ignore */ }
     clearAuth();
     router.push('/login');
-    toast.success('Logged out');
+    toast.success('Signed out');
     onClose?.();
   }
 
@@ -46,32 +46,51 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
   );
 
   const inner = (
-    <aside className="flex flex-col h-full bg-white dark:bg-slate-900 w-64">
-      {/* Logo + mobile close button */}
-      <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
-            <GraduationCap className="w-5 h-5 text-white" />
+    <aside className="flex flex-col h-full w-64
+                      bg-white dark:bg-[#09091a]
+                      border-r border-slate-200/80 dark:border-white/[0.05]">
+
+      {/* ── Logo ── */}
+      <div className="px-5 py-5 flex items-center justify-between
+                      border-b border-slate-200/80 dark:border-white/[0.05]">
+        <div className="flex items-center gap-3">
+          {/* Icon with glow */}
+          <div className="relative">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600
+                            flex items-center justify-center shadow-glow-sm">
+              <GraduationCap className="w-5 h-5 text-white" />
+            </div>
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600
+                            opacity-30 blur-sm -z-10" />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">Vision</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-tight">Collegiate</p>
+            <p className="text-sm font-black text-slate-900 dark:text-white leading-tight tracking-tight">
+              Vision
+            </p>
+            <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-600 leading-tight uppercase tracking-widest">
+              Collegiate
+            </p>
           </div>
         </div>
-        {/* Close button — only visible on mobile */}
         {onClose && (
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 md:hidden"
-            aria-label="Close menu"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300
+                       hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all md:hidden"
           >
-            <X className="w-5 h-5 text-slate-500" />
+            <X className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* Nav */}
+      {/* ── Nav ── */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+        {/* Section label */}
+        <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-widest
+                      text-slate-400 dark:text-slate-600">
+          Navigation
+        </p>
+
         {visibleItems.map((item) => {
           const Icon   = item.icon;
           const active = pathname.startsWith(item.href);
@@ -81,35 +100,69 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
               href={item.href}
               onClick={onClose}
               className={clsx(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150',
+                'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold',
+                'transition-all duration-150 group',
                 active
-                  ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
+                  ? [
+                    'text-white',
+                    'bg-gradient-to-r from-brand-600 to-brand-500',
+                    'shadow-glow-sm',
+                  ]
+                  : [
+                    'text-slate-600 dark:text-slate-400',
+                    'hover:text-slate-900 dark:hover:text-white',
+                    'hover:bg-slate-100/80 dark:hover:bg-white/[0.05]',
+                  ],
               )}
             >
-              <Icon className="w-4 h-4 flex-shrink-0" />
+              {/* Active indicator dot */}
+              {active && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2
+                                 w-1.5 h-1.5 rounded-full bg-white/60" />
+              )}
+              <Icon className={clsx(
+                'w-4 h-4 flex-shrink-0 transition-transform duration-150',
+                'group-hover:scale-110',
+                active ? 'text-white' : '',
+              )} />
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      {/* User + Logout */}
-      <div className="px-4 py-4 border-t border-slate-200 dark:border-slate-700">
+      {/* ── User card + logout ── */}
+      <div className="p-3 border-t border-slate-200/80 dark:border-white/[0.05]">
         {user && (
-          <div className="mb-3 px-2">
-            <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{user.name}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">{user.role}</p>
+          <div className="px-3 py-3 mb-2 rounded-xl
+                          bg-slate-50 dark:bg-white/[0.03]
+                          border border-slate-200/80 dark:border-white/[0.05]">
+            <div className="flex items-center gap-2.5">
+              {/* Avatar */}
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-purple-600
+                              flex items-center justify-center text-white text-sm font-black flex-shrink-0">
+                {user.name?.charAt(0)?.toUpperCase() ?? 'U'}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate leading-tight">
+                  {user.name}
+                </p>
+                <p className="text-[10px] font-medium text-slate-400 capitalize mt-0.5">{user.role}</p>
+              </div>
+            </div>
           </div>
         )}
+
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium
-                     text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20
-                     hover:text-red-600 dark:hover:text-red-400 transition-colors duration-150"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl
+                     text-sm font-semibold text-slate-500 dark:text-slate-500
+                     hover:bg-red-50 dark:hover:bg-red-500/10
+                     hover:text-red-600 dark:hover:text-red-400
+                     transition-all duration-150 group"
         >
-          <LogOut className="w-4 h-4" />
-          Logout
+          <LogOut className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-150" />
+          Sign Out
         </button>
       </div>
     </aside>
@@ -117,21 +170,18 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* ── Desktop: always visible sidebar ── */}
-      <div className="hidden md:flex md:w-64 md:flex-shrink-0 min-h-screen border-r border-slate-200 dark:border-slate-700">
+      {/* Desktop */}
+      <div className="hidden md:flex md:w-64 md:flex-shrink-0 min-h-screen">
         {inner}
       </div>
 
-      {/* ── Mobile: slide-in drawer with overlay ── */}
+      {/* Mobile drawer */}
       {open && (
         <div className="fixed inset-0 z-50 md:hidden">
-          {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
             onClick={onClose}
-            aria-hidden="true"
           />
-          {/* Drawer */}
           <div className="absolute left-0 top-0 bottom-0 w-64 shadow-2xl animate-slide-in">
             {inner}
           </div>
