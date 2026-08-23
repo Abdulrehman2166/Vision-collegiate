@@ -3,6 +3,7 @@ services:
     name: vision-collegiate-api
     runtime: node
     plan: free
+    rootDir: backend
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
@@ -10,25 +11,25 @@ services:
         value: production
       - key: PORT
         value: 3000
-      - key: DATABASE_URL
-        sync: false          # set manually in Render dashboard
-      - key: JWT_SECRET
-        sync: false
+      - key: LOG_LEVEL
+        value: info
       - key: JWT_EXPIRES_IN
         value: 7d
+      - key: STORAGE_BUCKET
+        value: reports
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
       - key: CORS_ORIGIN
-        value: https://your-frontend.vercel.app   # update after deploying frontend
+        sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_KEY
         sync: false
-      - key: STORAGE_BUCKET
-        value: reports
       - key: WHATSAPP_TOKEN
         sync: false
       - key: WHATSAPP_PHONE_ID
         sync: false
       - key: WHATSAPP_VERIFY_TOKEN
         sync: false
-      - key: LOG_LEVEL
-        value: info
