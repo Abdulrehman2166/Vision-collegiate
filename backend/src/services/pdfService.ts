@@ -1,32 +1,35 @@
 /**
- * pdfService – generates PDFs from HTML using Puppeteer.
+ * pdfService – generates PDFs from HTML.
+ * Uses Puppeteer when available (local dev), falls back to raw HTML buffer
+ * in environments where Chromium cannot be installed (Render free tier).
  */
-import puppeteer from 'puppeteer';
 import { logger } from '../utils/logger';
 
-async function getBrowser() {
-  return puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
-}
-
-/**
- * Render an HTML string to a PDF Buffer.
- */
-export async function htmlToPdf(html: string): Promise<Buffer> {
-  const browser = await getBrowser();
+async function htmlToPdf(html: string): Promise<Buffer> {
+  // Try puppeteer first
   try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' },
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const puppeteer = require('puppeteer') as typeof import('puppeteer');
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
-    return Buffer.from(pdf);
-  } finally {
-    await browser.close();
+    try {
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+      const pdf = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' },
+      });
+      return Buffer.from(pdf);
+    } finally {
+      await browser.close();
+    }
+  } catch {
+    // Puppeteer not available — return the HTML as a downloadable file instead
+    logger.warn('Puppeteer not available, returning HTML content as fallback');
+    return Buffer.from(html, 'utf-8');
   }
 }
 
@@ -92,7 +95,7 @@ export interface MonthlyAttendanceData {
   studentName: string;
   rollNumber: string;
   batchName: string;
-  month: string; // e.g. "January 2025"
+  month: string;
   records: { date: string; status: string }[];
   totalDays: number;
   presentDays: number;
@@ -120,8 +123,6 @@ export function buildMonthlyCardHtml(data: MonthlyAttendanceData): string {
   body { font-family: Arial, sans-serif; font-size: 12px; padding: 20px; }
   h1   { text-align: center; color: #1e3a5f; margin-bottom: 2px; }
   h2   { text-align: center; color: #555; margin-top: 0; font-size: 13px; }
-  .info { display: flex; gap: 30px; margin: 16px 0; }
-  .info p { margin: 0; }
   .summary { font-size: 14px; font-weight: bold; margin: 16px 0; color: #1e3a5f; }
   table { width: 50%; border-collapse: collapse; }
   th, td { border: 1px solid #ccc; padding: 6px 10px; }
@@ -135,14 +136,8 @@ export function buildMonthlyCardHtml(data: MonthlyAttendanceData): string {
 <body>
   <h1>Vision Collegiate</h1>
   <h2>Monthly Attendance Card – ${data.month}</h2>
-  <div class="info">
-    <p><strong>Name:</strong> ${data.studentName}</p>
-    <p><strong>Roll No.:</strong> ${data.rollNumber}</p>
-    <p><strong>Batch:</strong> ${data.batchName}</p>
-  </div>
-  <div class="summary">
-    Present: ${data.presentDays} / ${data.totalDays} days &nbsp;|&nbsp; Attendance: ${percentage}%
-  </div>
+  <p><strong>Name:</strong> ${data.studentName} &nbsp; <strong>Roll No.:</strong> ${data.rollNumber} &nbsp; <strong>Batch:</strong> ${data.batchName}</p>
+  <div class="summary">Present: ${data.presentDays} / ${data.totalDays} days &nbsp;|&nbsp; Attendance: ${percentage}%</div>
   <table>
     <thead><tr><th>Date</th><th>Status</th></tr></thead>
     <tbody>${rows}</tbody>
@@ -179,7 +174,6 @@ export function buildTestPaperHtml(
   questions: TestQuestion[],
   includeAnswers: boolean,
 ): string {
-  // Group by section
   const sections = new Map<string, TestQuestion[]>();
   for (const q of questions) {
     const sec = q.section ?? 'General';
@@ -206,7 +200,6 @@ export function buildTestPaperHtml(
   }
 
   const answerLabel = includeAnswers ? ' (with Answer Key)' : '';
-
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -220,37 +213,31 @@ export function buildTestPaperHtml(
   .marks { color: #888; font-size: 10px; }
   .answer { background: #fef9c3; border-left: 3px solid #d97706; padding: 4px 8px; margin-top: 4px; }
   ol { margin: 6px 0 6px 20px; }
-  .footer { margin-top: 30px; font-size: 10px; color: #888; text-align: right; }
 </style>
 </head>
 <body>
   <h1>Vision Collegiate${answerLabel}</h1>
   <div class="meta">
-    <strong>${meta.title}</strong> &nbsp;|&nbsp;
-    Subject: ${meta.subject} &nbsp;|&nbsp;
+    <strong>${meta.title}</strong> &nbsp;|&nbsp; ${meta.subject} &nbsp;|&nbsp;
     Grade: ${meta.grade}${meta.stream ? ' – ' + meta.stream : ''} &nbsp;|&nbsp;
-    ${meta.boardPattern ? 'Pattern: ' + meta.boardPattern + ' &nbsp;|&nbsp;' : ''}
-    Total Marks: ${meta.totalMarks} &nbsp;|&nbsp;
-    Duration: ${meta.durationMins} min
+    Total Marks: ${meta.totalMarks} &nbsp;|&nbsp; Duration: ${meta.durationMins} min
     ${meta.testDate ? `&nbsp;|&nbsp; Date: ${meta.testDate}` : ''}
   </div>
-  <hr/>
-  ${body}
-  <div class="footer">Generated on ${new Date().toLocaleString('en-IN')}</div>
+  <hr/>${body}
 </body>
 </html>`;
 }
 
+// ─── Exported generators ──────────────────────────────────────────────────────
+
 export async function generateAttendanceSlipPdf(records: AttendanceRecord[]): Promise<Buffer> {
-  const html = buildAttendanceSlipHtml(records);
-  logger.info(`Generating attendance slip PDF for ${records.length} records`);
-  return htmlToPdf(html);
+  logger.info(`Generating attendance slip for ${records.length} records`);
+  return htmlToPdf(buildAttendanceSlipHtml(records));
 }
 
 export async function generateMonthlyCardPdf(data: MonthlyAttendanceData): Promise<Buffer> {
-  const html = buildMonthlyCardHtml(data);
-  logger.info(`Generating monthly card PDF for ${data.studentName}`);
-  return htmlToPdf(html);
+  logger.info(`Generating monthly card for ${data.studentName}`);
+  return htmlToPdf(buildMonthlyCardHtml(data));
 }
 
 export async function generateTestPaperPdf(
@@ -258,7 +245,6 @@ export async function generateTestPaperPdf(
   questions: TestQuestion[],
   includeAnswers: boolean,
 ): Promise<Buffer> {
-  const html = buildTestPaperHtml(meta, questions, includeAnswers);
-  logger.info(`Generating test paper PDF: ${meta.title}, answers=${includeAnswers}`);
-  return htmlToPdf(html);
+  logger.info(`Generating test paper: ${meta.title}, answers=${includeAnswers}`);
+  return htmlToPdf(buildTestPaperHtml(meta, questions, includeAnswers));
 }
