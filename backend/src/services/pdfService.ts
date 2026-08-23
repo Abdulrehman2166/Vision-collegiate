@@ -8,8 +8,9 @@ import { logger } from '../utils/logger';
 async function htmlToPdf(html: string): Promise<Buffer> {
   // Try puppeteer first
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const puppeteer = require('puppeteer') as typeof import('puppeteer');
+    // Dynamic require avoids TS type checking for optional dependency
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const puppeteer = require('puppeteer') as any;
     const browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
