@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+.expo/
+
+# Build output
+dist/
+.next/
+
+# Environment files (contain secrets — never commit these)
+.env
+.env.local
+backend/.env
+frontend/.env.local
+mobile/.env
+
+# Logs
+logs/
+*.log
+
+# OS files
+desktop.ini
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+install*.log
+build*.log
+npm-install*.log
