@@ -5,6 +5,14 @@ import { Toaster } from 'react-hot-toast';
 export const metadata: Metadata = {
   title: 'Vision Collegiate',
   description: 'Coaching Institute Management System',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Vision Collegiate',
+  },
+  formatDetection: { telephone: false },
+  themeColor: '#1e3a5f',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
