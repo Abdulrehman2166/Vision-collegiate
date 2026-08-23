@@ -3,7 +3,6 @@
     "name": "Vision Collegiate",
     "slug": "vision-collegiate",
     "version": "1.0.0",
-    "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "visioncol",
@@ -30,11 +29,14 @@
       "output": "static",
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-secure-store"
-    ],
+    "plugins": ["expo-secure-store"],
     "experiments": {
       "typedRoutes": false
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8f3ded62-9988-42dd-83be-da4fc4250469"
+      }
     }
   }
 }
