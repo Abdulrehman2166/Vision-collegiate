@@ -76,9 +76,15 @@ export default function StudentsScreen() {
   }, [page, search, fBatch, hasMore]);
 
   useEffect(() => {
-    api.get<ApiResponse<Batch[]>>('/batches?active=true')
+    // Fetch all batches (active and inactive) so the picker is never empty
+    api.get<ApiResponse<Batch[]>>('/batches?active=false')
       .then((r) => setBatches(r.data.data))
-      .catch(() => {});
+      .catch(() => {
+        // Retry with active=true as fallback
+        api.get<ApiResponse<Batch[]>>('/batches?active=true')
+          .then((r) => setBatches(r.data.data))
+          .catch(() => {});
+      });
   }, []);
 
   useEffect(() => { fetchStudents(true); }, [search, fBatch]);

@@ -39,7 +39,7 @@ export default function AttendanceScreen() {
   const [refresh,    setRefresh]    = useState(false);
 
   useEffect(() => {
-    api.get<ApiResponse<Batch[]>>('/batches?active=true')
+    api.get<ApiResponse<Batch[]>>('/batches?active=false')
       .then((r) => {
         setBatches(r.data.data);
         if (r.data.data.length) setBatchId(r.data.data[0].id);
