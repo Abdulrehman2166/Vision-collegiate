@@ -70,14 +70,14 @@ export default function AnalyticsPage() {
 
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Analytics</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Analytics</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">Attendance trends and insights</p>
         </div>
 
         {/* Controls */}
-        <div className="flex gap-3 items-center">
+        <div className="flex flex-wrap gap-3 items-end mt-2 sm:mt-0">
           <div>
             <label className="label text-xs">Trend period</label>
             <select className="select w-28 text-xs" value={days} onChange={(e) => setDays(parseInt(e.target.value))}>

@@ -22,7 +22,6 @@ const sizeMap = {
 export function Modal({ open, onClose, title, children, size = 'md' }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  // Close on Escape
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -30,7 +29,6 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
     return () => window.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
-  // Lock body scroll
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -41,29 +39,36 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4
-                 bg-black/40 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center
+                 sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
       onClick={(e) => e.target === overlayRef.current && onClose()}
     >
       <div
         className={clsx(
-          'w-full rounded-2xl card p-0 shadow-xl animate-slide-up overflow-hidden',
+          // On mobile: full-width sheet from bottom with rounded top corners
+          // On sm+: centered dialog with all rounded corners
+          'w-full sm:rounded-2xl rounded-t-2xl rounded-b-none sm:rounded-b-2xl',
+          'card p-0 shadow-xl animate-slide-up overflow-hidden',
+          // Max height: scrollable on small screens
+          'max-h-[90vh] flex flex-col',
           sizeMap[size],
         )}
       >
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between px-5 sm:px-6 py-4
+                          border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
             <h2 className="text-base font-semibold text-slate-900 dark:text-white">{title}</h2>
             <button
               onClick={onClose}
-              className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               aria-label="Close modal"
             >
               <X className="w-4 h-4 text-slate-500" />
             </button>
           </div>
         )}
-        <div className="p-6">{children}</div>
+        {/* Scrollable content area */}
+        <div className="overflow-y-auto flex-1 p-5 sm:p-6">{children}</div>
       </div>
     </div>
   );

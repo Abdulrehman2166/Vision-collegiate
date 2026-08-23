@@ -163,13 +163,13 @@ export default function StudentsPage() {
 
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Students</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Students</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">{total} total students</p>
         </div>
         {isAdmin && (
-          <button onClick={openCreate} className="btn-primary">
+          <button onClick={openCreate} className="btn-primary self-start sm:self-auto">
             <Plus className="w-4 h-4" /> Add Student
           </button>
         )}
@@ -205,8 +205,8 @@ export default function StudentsPage() {
       <Modal open={modalOpen} onClose={() => setModalOpen(false)}
              title={editStudent ? 'Edit Student' : 'Add Student'} size="lg">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
               <label className="label">Full Name *</label>
               <input className="input" {...register('name')} />
               {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>}
@@ -249,7 +249,7 @@ export default function StudentsPage() {
               <label className="label">Date of Birth</label>
               <input className="input" type="date" {...register('date_of_birth')} />
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <label className="label">Address</label>
               <textarea className="input resize-none" rows={2} {...register('address')} />
             </div>

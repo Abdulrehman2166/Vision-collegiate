@@ -93,13 +93,13 @@ export default function BatchesPage() {
 
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Batches</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Batches</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">{batches.length} total batches</p>
         </div>
         {isAdmin && (
-          <button onClick={openCreate} className="btn-primary">
+          <button onClick={openCreate} className="btn-primary self-start sm:self-auto">
             <Plus className="w-4 h-4" /> Add Batch
           </button>
         )}

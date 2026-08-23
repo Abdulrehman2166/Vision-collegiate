@@ -144,13 +144,13 @@ export default function TestsPage() {
 
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Test Papers</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Test Papers</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">{total} total tests</p>
         </div>
         {canCreate && (
-          <button onClick={() => { reset(); setStep(1); setWizardOpen(true); }} className="btn-primary">
+          <button onClick={() => { reset(); setStep(1); setWizardOpen(true); }} className="btn-primary self-start sm:self-auto">
             <Plus className="w-4 h-4" /> Create Test
           </button>
         )}
@@ -187,8 +187,8 @@ export default function TestsPage() {
           {/* ─ Step 1: Metadata ─ */}
           {step === 1 && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
                   <label className="label">Title *</label>
                   <input className="input" placeholder="e.g. Unit Test 1 – Physics" {...register('title')} />
                   {errors.title && <p className="mt-1 text-xs text-red-500">{errors.title.message}</p>}
@@ -262,7 +262,7 @@ export default function TestsPage() {
 
                     {expandedQ === idx && (
                       <div className="p-4 space-y-3 bg-white dark:bg-slate-800">
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
                             <label className="label">Section</label>
                             <input className="input" placeholder="Section A" {...register(`questions.${idx}.section`)} />

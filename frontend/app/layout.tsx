@@ -1,6 +1,12 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
+
+export const viewport: Viewport = {
+  themeColor: '#1e3a5f',
+  width: 'device-width',
+  initialScale: 1,
+};
 
 export const metadata: Metadata = {
   title: 'Vision Collegiate',
@@ -12,7 +18,6 @@ export const metadata: Metadata = {
     title: 'Vision Collegiate',
   },
   formatDetection: { telephone: false },
-  themeColor: '#1e3a5f',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

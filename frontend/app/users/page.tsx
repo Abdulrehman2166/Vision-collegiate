@@ -83,12 +83,12 @@ export default function UsersPage() {
 
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Users</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Users</h1>
           <p className="text-sm text-slate-500">{total} total accounts</p>
         </div>
-        <button onClick={() => { reset(); setOpen(true); }} className="btn-primary">
+        <button onClick={() => { reset(); setOpen(true); }} className="btn-primary self-start sm:self-auto">
           <Plus className="w-4 h-4" /> Add User
         </button>
       </div>

@@ -136,15 +136,15 @@ export default function AttendancePage() {
 
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Attendance</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Attendance</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">Mark and manage daily attendance</p>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="card p-4 mb-5 flex flex-wrap gap-3 items-end">
+      <div className="card p-4 mb-5 flex flex-col sm:flex-row flex-wrap gap-3 items-start sm:items-end">
         <div>
           <label className="label">Batch</label>
           <select className="select w-52" value={batchId} onChange={(e) => setBatchId(e.target.value)}>
