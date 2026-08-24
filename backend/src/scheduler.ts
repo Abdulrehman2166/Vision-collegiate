@@ -69,6 +69,13 @@ export function startScheduler(): void {
           continue;
         }
 
+        // Guard: batch_id must be set for targeted dispatch
+        if (!schedule.batch_id) {
+          logger.warn(`Skipping scheduled dispatch for test ${schedule.test_id}: batch_id is NULL`);
+          await pool.query('UPDATE test_schedules SET dispatched = TRUE WHERE id = $1', [schedule.id]);
+          continue;
+        }
+
         const studentsRes = await pool.query(
           `SELECT s.name, s.parent_phone, s.parent_name
            FROM students s

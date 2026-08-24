@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { pool } from '../db';
 import { createError } from '../middleware/errorHandler';
 import * as whatsappService from '../services/whatsappService';
+import { logger } from '../utils/logger';
 
 /** POST /api/v1/whatsapp/send-document  – generic document send */
 export async function sendDocument(req: Request, res: Response, next: NextFunction) {
@@ -85,6 +86,26 @@ export async function getLogs(req: Request, res: Response, next: NextFunction) {
 /** POST /api/v1/whatsapp/webhook  – Meta delivery status callback */
 export async function handleWebhook(req: Request, res: Response, next: NextFunction) {
   try {
+    // ── HMAC-SHA256 signature verification ──────────────────────────
+    const signature = req.headers['x-hub-signature-256'] as string | undefined;
+    if (signature) {
+      // rawBody is attached by express.raw() middleware in the route
+      const rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
+      if (rawBody) {
+        const valid = whatsappService.verifyWebhookSignature(rawBody, signature);
+        if (!valid) {
+          logger.warn('WhatsApp webhook: invalid signature — request rejected');
+          res.sendStatus(403);
+          return;
+        }
+      }
+    } else if (process.env.WHATSAPP_APP_SECRET) {
+      // Secret is configured but no signature header — reject
+      logger.warn('WhatsApp webhook: missing X-Hub-Signature-256 header — request rejected');
+      res.sendStatus(403);
+      return;
+    }
+
     // Respond with 200 immediately to acknowledge receipt
     res.sendStatus(200);
 

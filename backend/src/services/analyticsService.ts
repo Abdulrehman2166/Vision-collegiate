@@ -45,18 +45,18 @@ export async function getTodayAttendanceSummary(batchId?: number): Promise<Atten
 
   const res = await pool.query(
     `SELECT
-       COUNT(*)                                    AS total,
-       SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) AS present,
-       SUM(CASE WHEN a.status = 'absent'  THEN 1 ELSE 0 END) AS absent
+       COUNT(*)                                                             AS total,
+       SUM(CASE WHEN a.status IN ('present','late') THEN 1 ELSE 0 END)    AS present,
+       SUM(CASE WHEN a.status = 'absent'            THEN 1 ELSE 0 END)    AS absent
      FROM attendance a
      WHERE a.date = $1 ${batchFilter}`,
     params,
   );
 
   const row = res.rows[0];
-  const total = Number(row.total) || 0;
+  const total   = Number(row.total)   || 0;
   const present = Number(row.present) || 0;
-  const absent = Number(row.absent) || 0;
+  const absent  = Number(row.absent)  || 0;
 
   return {
     totalStudents: total,

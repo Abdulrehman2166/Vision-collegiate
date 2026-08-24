@@ -5,6 +5,11 @@ import { z } from 'zod';
 import { pool } from '../db';
 import { createError } from '../middleware/errorHandler';
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword:     z.string().min(8),
+});
+
 const registerSchema = z.object({
   name:     z.string().min(2),
   email:    z.string().email(),
@@ -135,6 +140,27 @@ export async function deleteUser(req: Request, res: Response, next: NextFunction
     const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
     if (!result.rows.length) throw createError('User not found', 404);
     res.json({ success: true, message: 'User deleted' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** POST /api/v1/auth/change-password */
+export async function changePassword(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+
+    // Fetch current hash
+    const result = await pool.query('SELECT password FROM users WHERE id = $1', [req.user!.id]);
+    if (!result.rows.length) throw createError('User not found', 404);
+
+    const valid = await bcrypt.compare(currentPassword, result.rows[0].password);
+    if (!valid) throw createError('Current password is incorrect', 400);
+
+    const hashed = await bcrypt.hash(newPassword, 12);
+    await pool.query('UPDATE users SET password = $1, updated_at = now() WHERE id = $2', [hashed, req.user!.id]);
+
+    res.json({ success: true, message: 'Password changed successfully' });
   } catch (err) {
     next(err);
   }

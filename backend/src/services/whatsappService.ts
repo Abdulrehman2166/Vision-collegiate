@@ -3,6 +3,7 @@
  * Docs: https://developers.facebook.com/docs/whatsapp/cloud-api
  */
 import axios, { AxiosError } from 'axios';
+import * as crypto from 'crypto';
 import { pool } from '../db';
 import { logger } from '../utils/logger';
 
@@ -22,9 +23,40 @@ function getPhoneId(): string {
   return id;
 }
 
-/** Normalise phone: ensure it has country code, strip spaces/dashes */
-function normalisePhone(phone: string): string {
-  return phone.replace(/[\s\-().+]/g, '');
+/**
+ * Normalise and validate phone number.
+ * Strips formatting characters and ensures a country code is present.
+ * If the number doesn't start with a country code (doesn't begin with 1-3 digits
+ * matching a known country prefix), prepend the default country code from env.
+ * Default country code: WHATSAPP_DEFAULT_CC (e.g. "91" for India).
+ */
+export function normalisePhone(phone: string): string {
+  // Strip all non-digit characters
+  const stripped = phone.replace(/\D/g, '');
+
+  // If it already looks like it has a country code (≥11 digits), return as-is
+  if (stripped.length >= 11) return stripped;
+
+  // Otherwise prepend the configured default country code (default: 91 for India)
+  const defaultCC = (process.env.WHATSAPP_DEFAULT_CC ?? '91').replace(/\D/g, '');
+  const withCC = `${defaultCC}${stripped}`;
+
+  logger.warn(`Phone ${phone} appears to lack a country code — prepended ${defaultCC}: ${withCC}`);
+  return withCC;
+}
+
+/**
+ * Verify Meta WhatsApp webhook signature.
+ * Meta sends X-Hub-Signature-256: sha256=<hmac> on POST webhooks.
+ */
+export function verifyWebhookSignature(rawBody: Buffer, signature: string): boolean {
+  const appSecret = process.env.WHATSAPP_APP_SECRET;
+  if (!appSecret) {
+    logger.warn('WHATSAPP_APP_SECRET not set — skipping webhook signature verification');
+    return true; // graceful degradation if not configured
+  }
+  const expected = 'sha256=' + crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex');
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
 }
 
 // ─── Log helper ───────────────────────────────────────────────────────────────

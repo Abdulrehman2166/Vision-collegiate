@@ -40,6 +40,17 @@ app.use(cors({
   },
   credentials: true,
 }));
+
+// ─── WhatsApp webhook: capture raw body BEFORE json() parses it ───────────────
+// Meta webhook POST needs the raw body for HMAC signature verification.
+app.use('/api/v1/whatsapp/webhook', express.raw({ type: 'application/json' }), (req, _res, next) => {
+  // Attach rawBody so the controller can verify the signature
+  (req as express.Request & { rawBody?: Buffer }).rawBody = req.body as Buffer;
+  // Re-parse as JSON so controllers can access req.body normally
+  try { req.body = JSON.parse((req.body as Buffer).toString('utf8')); } catch { req.body = {}; }
+  next();
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 

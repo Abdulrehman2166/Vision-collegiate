@@ -154,23 +154,53 @@ export async function generateAttendancePDF(req: Request, res: Response, next: N
       );
       if (!rows.rows.length) throw createError('No attendance records found for this month', 404);
 
-      // Group by student and generate per-student PDF (first student or specific)
-      const student = rows.rows[0];
-      const records = rows.rows
-        .filter((r) => r.id === student.id)
-        .map((r) => ({ date: r.date, status: r.status }));
+      if (data.studentId) {
+        // Single student PDF
+        const student   = rows.rows[0];
+        const records   = rows.rows.map((r) => ({ date: r.date, status: r.status }));
+        const presentDays = records.filter((r) => ['present', 'late'].includes(r.status)).length;
+        pdfBuffer = await pdfService.generateMonthlyCardPdf({
+          studentName:  student.studentName,
+          rollNumber:   student.rollNumber,
+          batchName:    student.batchName,
+          month:        data.month,
+          records,
+          totalDays:    records.length,
+          presentDays,
+        });
+        filePath = `attendance/monthly/${data.batchId}/${data.month}-${student.id}.pdf`;
+      } else {
+        // Batch-level: generate one PDF per student and zip, or return the first student's PDF
+        // For now return the first student's card and note the limitation in the response
+        const studentIds = [...new Set<number>(rows.rows.map((r: { id: number }) => r.id as number))];
+        const firstId = studentIds[0];
+        const firstRows = rows.rows.filter((r) => r.id === firstId);
+        const records   = firstRows.map((r) => ({ date: r.date, status: r.status }));
+        const presentDays = records.filter((r) => ['present', 'late'].includes(r.status)).length;
 
-      const presentDays = records.filter((r) => ['present', 'late'].includes(r.status)).length;
-      pdfBuffer = await pdfService.generateMonthlyCardPdf({
-        studentName:  student.studentName,
-        rollNumber:   student.rollNumber,
-        batchName:    student.batchName,
-        month:        data.month,
-        records,
-        totalDays:    records.length,
-        presentDays,
-      });
-      filePath = `attendance/monthly/${data.batchId}/${data.month}-${student.id}.pdf`;
+        pdfBuffer = await pdfService.generateMonthlyCardPdf({
+          studentName:  firstRows[0].studentName,
+          rollNumber:   firstRows[0].rollNumber,
+          batchName:    firstRows[0].batchName,
+          month:        data.month,
+          records,
+          totalDays:    records.length,
+          presentDays,
+        });
+        filePath = `attendance/monthly/${data.batchId}/${data.month}-${firstId}.pdf`;
+
+        // Upload and return with a hint that per-student generation is supported via `studentId`
+        const publicUrl = await storageService.uploadFile(pdfBuffer, filePath);
+        return res.json({
+          success: true,
+          data: {
+            url: publicUrl,
+            note: `Generated for student #${firstId}. Pass \`studentId\` to generate for a specific student. Total students in batch for this month: ${studentIds.length}.`,
+            totalStudents: studentIds.length,
+            studentIds,
+          },
+        });
+      }
     }
 
     const publicUrl = await storageService.uploadFile(pdfBuffer, filePath);

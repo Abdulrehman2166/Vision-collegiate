@@ -1,12 +1,13 @@
 {
   "name": "Vision Collegiate",
-  "short_name": "Vision Col",
-  "description": "Coaching Institute Management System",
+  "short_name": "Vision Col.",
+  "description": "Coaching Institute Management System — Attendance, Tests & Analytics",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#1e3a5f",
-  "theme_color": "#1e3a5f",
-  "orientation": "portrait",
+  "background_color": "#04040f",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "categories": ["education", "productivity"],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -19,6 +20,19 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "View today's overview"
+    },
+    {
+      "name": "Mark Attendance",
+      "url": "/attendance",
+      "description": "Mark batch attendance"
     }
   ]
 }

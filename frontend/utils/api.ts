@@ -1,33 +1,29 @@
 /**
- * Centralised Axios instance.
- * – Attaches JWT from localStorage (client-side) or cookie (SSR handled by next.config rewrites)
- * – Redirects to /login on 401
+ * api.ts — centralised Axios instance.
+ *
+ * Auth strategy: cookie-only.
+ * – withCredentials: true sends the HttpOnly `token` cookie on every request.
+ * – No Authorization header / localStorage token injection.
+ * – On 401 the interceptor clears local user profile and redirects to /login.
  */
 import axios from 'axios';
 
 const api = axios.create({
   baseURL: '/api/v1',
-  withCredentials: true, // send cookies cross-origin
+  withCredentials: true, // sends the HttpOnly cookie automatically
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach token from localStorage on every request
-api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('vc_token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Redirect to login on 401
+// ── Response interceptor: handle 401 globally ──────────────────────────────
 api.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('vc_token');
+      // Clear stale user profile and redirect — the cookie is handled by the backend
       localStorage.removeItem('vc_user');
-      window.location.href = '/login';
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   },
@@ -35,7 +31,7 @@ api.interceptors.response.use(
 
 export default api;
 
-// ─── Typed helpers ────────────────────────────────────────────────────────────
+// ─── Shared TypeScript interfaces ─────────────────────────────────────────────
 
 export interface ApiResponse<T> {
   success: boolean;

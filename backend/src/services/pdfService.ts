@@ -27,10 +27,18 @@ async function htmlToPdf(html: string): Promise<Buffer> {
     } finally {
       await browser.close();
     }
-  } catch {
-    // Puppeteer not available — return the HTML as a downloadable file instead
-    logger.warn('Puppeteer not available, returning HTML content as fallback');
-    return Buffer.from(html, 'utf-8');
+  } catch (err) {
+    // Puppeteer not available in this environment — throw a clear error
+    // rather than silently returning an HTML buffer with a .pdf extension
+    logger.error('Puppeteer is not available. Cannot generate PDF.', {
+      error: (err as Error).message,
+      hint: 'Install puppeteer: npm install puppeteer',
+    });
+    const serviceErr: Error & { statusCode?: number } = new Error(
+      'PDF generation is not available in this environment. Please install Puppeteer.',
+    );
+    serviceErr.statusCode = 503;
+    throw serviceErr;
   }
 }
 

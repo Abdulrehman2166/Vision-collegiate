@@ -20,6 +20,7 @@ import api, {
 import { getUser } from '@/utils/auth';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 // ─── Quick actions ─────────────────────────────────────────────────────────
 const QUICK_ACTIONS = [
@@ -39,11 +40,14 @@ const stagger = {
 };
 
 export default function DashboardPage() {
-  const user = getUser();
+  const [user, setUser] = useState<ReturnType<typeof getUser>>(null);
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [trend,   setTrend]   = useState<TrendPoint[]>([]);
   const [alerts,  setAlerts]  = useState<LowAttendanceAlert[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Hydration-safe: read user from localStorage only after mount
+  useEffect(() => { setUser(getUser()); }, []);
 
   const load = useCallback(async () => {
     try {
@@ -55,8 +59,14 @@ export default function DashboardPage() {
       setSummary(sumRes.data.data);
       setTrend(trendRes.data.data);
       setAlerts(alertRes.data.data);
-    } catch { /* handled */ }
-    finally { setLoading(false); }
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } }).response?.data?.message ??
+        'Failed to load dashboard data. Please refresh.';
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
