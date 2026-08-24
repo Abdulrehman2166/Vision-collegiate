@@ -8,7 +8,6 @@ import { NavigationProgress } from '@/components/ui/NavigationProgress';
 //    automatic font-display:swap, no @next/next/no-page-custom-font warning ──
 const inter = Inter({
   subsets: ['latin'],
-  axes: ['opsz'],          // optical size axis (ital handled by variable font)
   display: 'swap',
   variable: '--font-inter',
 });

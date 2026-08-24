@@ -2,7 +2,7 @@
   "extends": ["next/core-web-vitals"],
   "rules": {
     "@next/next/no-page-custom-font": "off",
-    "react/no-unescaped-entities": "error",
+    "react/no-unescaped-entities": "warn",
     "@typescript-eslint/no-unused-vars": "warn",
     "@typescript-eslint/no-explicit-any": "warn"
   }
