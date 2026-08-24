@@ -5,6 +5,7 @@
 /* ── Design tokens ──────────────────────────────────────────────────────────── */
 @layer base {
   :root {
+    --font-inter:  '';           /* populated by next/font/google at runtime */
     --bg-base:     #04040f;
     --bg-surface:  #080820;
     --bg-card:     #0d0d28;
