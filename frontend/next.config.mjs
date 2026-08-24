@@ -1,32 +1,28 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ── SWC compiler (already default in Next 14, but explicit for clarity) ─
-  swcMinify: true,
-
   // ── Compiler optimisations ─────────────────────────────────────────────
   compiler: {
-    // Remove console.log in production
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
 
   // ── Image optimisation ─────────────────────────────────────────────────
   images: {
-    formats: ['image/avif', 'image/webp'],  // serve next-gen formats
-    minimumCacheTTL: 86400,                 // cache optimised images for 24 h
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 86400,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
   },
 
-  // ── Experimental: partial prerendering hints ───────────────────────────
+  // ── Tree-shake large packages ──────────────────────────────────────────
   experimental: {
     optimizePackageImports: [
-      'lucide-react',      // tree-shake icon library (big win)
-      'framer-motion',     // tree-shake motion exports
-      'recharts',          // tree-shake chart components
-      'date-fns',          // tree-shake date helpers
+      'lucide-react',
+      'framer-motion',
+      'recharts',
+      'date-fns',
     ],
   },
 
-  // ── API proxy — rewrites /api/v1/* to the backend ─────────────────────
+  // ── API proxy ──────────────────────────────────────────────────────────
   async rewrites() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
     return [
@@ -37,29 +33,21 @@ const nextConfig = {
     ];
   },
 
-  // ── Security headers ───────────────────────────────────────────────────
+  // ── Security + cache headers ───────────────────────────────────────────
   async headers() {
     return [
       {
-        // HTML pages: never cache in browser — always fetch fresh so new deploys are picked up immediately
         source: '/((?!_next/static|_next/image|favicon|icons|logo|manifest).*)',
         headers: [
-          { key: 'Cache-Control',           value: 'no-cache, no-store, must-revalidate' },
-          { key: 'Pragma',                  value: 'no-cache' },
-          { key: 'X-Content-Type-Options',  value: 'nosniff' },
-          { key: 'X-Frame-Options',          value: 'DENY' },
-          { key: 'Referrer-Policy',          value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy',       value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'Cache-Control',          value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Pragma',                 value: 'no-cache' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options',        value: 'DENY' },
+          { key: 'Referrer-Policy',        value: 'strict-origin-when-cross-origin' },
         ],
       },
       {
-        // Next.js hashed static chunks — immutable forever (hash changes on every deploy)
         source: '/_next/static/(.*)',
-        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
-      },
-      {
-        // Images and icons — long cache is fine (content-addressed)
-        source: '/icons/(.*)',
         headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
       },
       {
