@@ -1,4 +1,5 @@
 import { clsx } from 'clsx';
+import Image from 'next/image';
 
 interface SpinnerProps { size?: 'sm'|'md'|'lg'; className?: string; }
 const sizeMap = { sm: 'w-4 h-4', md: 'w-6 h-6', lg: 'w-10 h-10' };
@@ -19,19 +20,39 @@ export function Spinner({ size = 'md', className }: SpinnerProps) {
 
 export function PageLoader() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-[#0a0a1e]">
+    <div
+      className="flex items-center justify-center min-h-screen"
+      style={{ background: 'linear-gradient(180deg, #04040f 0%, #06061a 100%)' }}
+    >
       <div className="flex flex-col items-center gap-5">
+        {/* Real coaching logo */}
         <div className="relative">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-purple-600
-                          flex items-center justify-center shadow-glow animate-float">
-            <span className="text-2xl font-black text-white select-none">V</span>
+          <div
+            className="w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center animate-float"
+            style={{
+              background: 'rgba(255,255,255,0.0)',
+              boxShadow: '0 0 30px -6px rgba(99,102,241,0.55)',
+            }}
+          >
+            <Image
+              src="/logo.png"
+              alt="Vision Collegiate"
+              width={64}
+              height={64}
+              className="object-contain logo-blend"
+              priority
+            />
           </div>
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-brand-500 to-purple-600
-                          opacity-25 blur-lg -z-10 scale-110" />
+          {/* Glow ring */}
+          <div
+            className="absolute inset-0 rounded-2xl -z-10 scale-110 blur-md"
+            style={{ background: 'linear-gradient(135deg, #6366f130, #a855f730)' }}
+          />
         </div>
+
         <div className="flex items-center gap-3">
           <Spinner size="md" />
-          <span className="text-sm font-medium text-slate-400 dark:text-slate-600">Loading…</span>
+          <span className="text-sm font-medium text-slate-500">Loading…</span>
         </div>
       </div>
     </div>

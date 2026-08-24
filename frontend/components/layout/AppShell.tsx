@@ -17,17 +17,12 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const [ready,       setReady]       = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [logoError,   setLogoError]   = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.replace('/login');
-    } else {
-      setReady(true);
-    }
+    if (!isAuthenticated()) router.replace('/login');
+    else setReady(true);
   }, [router]);
 
-  // Close sidebar on route change
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
   if (!ready) return <PageLoader />;
@@ -37,16 +32,12 @@ export function AppShell({ children }: AppShellProps) {
       className="flex min-h-screen"
       style={{ background: 'linear-gradient(180deg, #04040f 0%, #06061a 100%)' }}
     >
-      {/* Sidebar */}
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Desktop header */}
-        <div className="hidden md:block">
-          <HeaderBar />
-        </div>
+        <div className="hidden md:block"><HeaderBar /></div>
 
         {/* Mobile top bar */}
         <div
@@ -57,53 +48,42 @@ export function AppShell({ children }: AppShellProps) {
             borderBottom: '1px solid rgba(255,255,255,0.05)',
           }}
         >
-          <motion.button
-            whileTap={{ scale: 0.92 }}
+          <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-xl text-slate-400 hover:text-white transition-all"
+            className="p-2 rounded-xl text-slate-400 hover:text-white transition-colors active:scale-95"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
             aria-label="Open menu"
           >
             <Menu className="w-4 h-4" />
-          </motion.button>
+          </button>
 
-          {/* Logo center */}
+          {/* Logo — mix-blend-mode removes white background */}
           <div className="flex items-center gap-2">
             <div
               className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center"
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                boxShadow: '0 0 12px -2px rgba(99,102,241,0.5)',
-              }}
+              style={{ background: 'transparent' }}
             >
-              {!logoError ? (
-                <Image
-                  src="/logo.png"
-                  alt="Vision Collegiate"
-                  width={28}
-                  height={28}
-                  className="object-contain"
-                  onError={() => setLogoError(true)}
-                />
-              ) : (
-                <span className="text-xs font-black text-white">V</span>
-              )}
+              <Image
+                src="/logo.png"
+                alt="Vision Collegiate"
+                width={28}
+                height={28}
+                className="object-contain logo-blend"
+              />
             </div>
             <span className="text-sm font-bold text-white">Vision Collegiate</span>
           </div>
 
-          {/* Spacer to keep logo centered */}
           <div className="w-[40px]" />
         </div>
 
-        {/* Page content with animated transitions */}
+        {/* Page content — fast, subtle transition for instant feel */}
         <main className="flex-1 overflow-auto">
           <motion.div
             key={pathname}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
             className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8"
           >
             {children}
