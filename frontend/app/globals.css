@@ -2,177 +2,132 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Google Fonts via CSS (no Next.js font dependency) ─────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
+/* ── Design tokens ─────────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    --bg:           248 250 252;
-    --card:         255 255 255;
-    --border:       226 232 240;
-    --sidebar-bg:   255 255 255;
-    --sidebar-text: 51 65 85;
-  }
-
-  /* Dark mode — rich deep navy */
-  .dark {
-    --bg:           8 8 20;
-    --card:         15 15 30;
-    --border:       30 30 60;
-    --sidebar-bg:   10 10 25;
-    --sidebar-text: 148 163 184;
+    --radius: 16px;
+    --sidebar-w: 260px;
+    --header-h: 60px;
   }
 
   html { scroll-behavior: smooth; }
 
   body {
-    @apply antialiased;
-    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-    background-color: rgb(var(--bg));
-    color-scheme: light dark;
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    @apply antialiased bg-slate-50 text-slate-900 dark:bg-[#0a0a1e] dark:text-slate-100;
   }
 
-  /* Custom scrollbar */
-  ::-webkit-scrollbar       { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { @apply bg-slate-300 dark:bg-slate-700 rounded-full; }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-slate-400 dark:bg-slate-600; }
+  /* Selection */
+  ::selection { @apply bg-brand-500/20 text-brand-700 dark:text-brand-300; }
 
-  * { @apply selection:bg-brand-500/20 selection:text-brand-700 dark:selection:text-brand-300; }
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply rounded-full bg-slate-300 dark:bg-white/10; }
 }
 
+/* ── Component utilities ───────────────────────────────────────────────────── */
 @layer components {
 
-  /* ── Cards ──────────────────────────────────────────────────────────────── */
-
-  /* Solid card */
+  /* ── Cards ── */
   .card {
-    @apply bg-white dark:bg-[#0f0f1e]
-           border border-slate-200/80 dark:border-white/[0.06]
-           rounded-2xl
-           shadow-card dark:shadow-none;
+    @apply bg-white dark:bg-[#111128]
+           border border-slate-200/80 dark:border-white/[0.07]
+           rounded-2xl shadow-card;
+  }
+  .glass {
+    @apply bg-white/70 dark:bg-white/[0.04]
+           border border-white/60 dark:border-white/[0.08]
+           backdrop-blur-xl rounded-2xl;
   }
 
-  /* Glassmorphism card */
-  .glass-card {
-    @apply bg-white/60 dark:bg-white/[0.04]
-           backdrop-blur-xl
-           border border-white/80 dark:border-white/[0.08]
-           rounded-2xl
-           shadow-card;
+  /* ── Buttons ── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+           text-sm font-semibold transition-all duration-200 active:scale-[0.97]
+           disabled:opacity-50 disabled:cursor-not-allowed select-none;
   }
-
-  /* Elevated card — subtle glow on dark */
-  .card-elevated {
-    @apply card dark:shadow-glow-sm;
-  }
-
-  /* ── Buttons ────────────────────────────────────────────────────────────── */
-
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2
-           px-4 py-2.5 rounded-xl
-           bg-brand-600 hover:bg-brand-500
-           text-white text-sm font-semibold
-           shadow-glow-sm hover:shadow-glow
-           transition-all duration-200
-           active:scale-[0.97]
-           disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none;
+    @apply btn bg-brand-600 hover:bg-brand-500 text-white
+           shadow-glow-sm hover:shadow-glow disabled:shadow-none;
   }
-
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2
-           px-4 py-2.5 rounded-xl
-           bg-slate-100 hover:bg-slate-200
-           dark:bg-white/[0.06] dark:hover:bg-white/[0.1]
-           dark:border dark:border-white/[0.08]
-           text-slate-700 dark:text-slate-200 text-sm font-semibold
-           transition-all duration-200
-           active:scale-[0.97]
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply btn bg-slate-100 hover:bg-slate-200 text-slate-700
+           dark:bg-white/[0.06] dark:hover:bg-white/[0.1] dark:text-slate-200
+           border border-slate-200/80 dark:border-white/[0.06];
   }
-
-  .btn-danger {
-    @apply inline-flex items-center justify-center gap-2
-           px-4 py-2.5 rounded-xl
-           bg-red-500 hover:bg-red-400
-           text-white text-sm font-semibold
-           shadow-glow-red hover:shadow-glow-red
-           transition-all duration-200
-           active:scale-[0.97]
-           disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2
-           px-4 py-2.5 rounded-xl
-           text-slate-600 dark:text-slate-400
+    @apply btn text-slate-500 dark:text-slate-400
            hover:bg-slate-100 dark:hover:bg-white/[0.05]
-           text-sm font-medium
-           transition-all duration-200;
+           hover:text-slate-900 dark:hover:text-white;
+  }
+  .btn-danger {
+    @apply btn bg-red-500 hover:bg-red-400 text-white shadow-glow-red;
   }
 
-  /* ── Inputs ─────────────────────────────────────────────────────────────── */
-
+  /* ── Inputs ── */
   .input {
-    @apply w-full px-3.5 py-2.5 rounded-xl
+    @apply w-full rounded-xl px-3.5 py-2.5 text-sm
            bg-slate-50 dark:bg-white/[0.04]
            border border-slate-200 dark:border-white/[0.08]
-           text-slate-900 dark:text-slate-100 text-sm
+           text-slate-900 dark:text-white
            placeholder:text-slate-400 dark:placeholder:text-slate-600
-           focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500/50
-           dark:focus:border-brand-500/40
+           focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/60
            transition-all duration-150;
   }
-
-  .select {
-    @apply input appearance-none cursor-pointer;
+  .select { @apply input appearance-none cursor-pointer; }
+  .label  {
+    @apply block text-[11px] font-bold uppercase tracking-widest
+           text-slate-400 dark:text-slate-600 mb-1.5;
   }
 
-  .label {
-    @apply block text-xs font-semibold uppercase tracking-wider
-           text-slate-500 dark:text-slate-400 mb-1.5;
-  }
-
-  /* ── Badges ─────────────────────────────────────────────────────────────── */
-
+  /* ── Badges ── */
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full
+           text-[11px] font-bold tracking-wide;
   }
+  .badge-green  { @apply badge bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400; }
+  .badge-red    { @apply badge bg-red-100     dark:bg-red-500/15     text-red-700     dark:text-red-400; }
+  .badge-yellow { @apply badge bg-amber-100   dark:bg-amber-500/15   text-amber-700   dark:text-amber-400; }
+  .badge-blue   { @apply badge bg-brand-100   dark:bg-brand-500/15   text-brand-700   dark:text-brand-400; }
+  .badge-gray   { @apply badge bg-slate-100   dark:bg-white/[0.06]   text-slate-600   dark:text-slate-400; }
+  .badge-purple { @apply badge bg-purple-100  dark:bg-purple-500/15  text-purple-700  dark:text-purple-400; }
 
-  .badge-green  { @apply badge bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400; }
-  .badge-red    { @apply badge bg-red-100     text-red-700     dark:bg-red-500/15     dark:text-red-400; }
-  .badge-yellow { @apply badge bg-amber-100   text-amber-700   dark:bg-amber-500/15   dark:text-amber-400; }
-  .badge-blue   { @apply badge bg-brand-100   text-brand-700   dark:bg-brand-500/15   dark:text-brand-400; }
-  .badge-gray   { @apply badge bg-slate-100   text-slate-600   dark:bg-white/[0.06]   dark:text-slate-400; }
-  .badge-purple { @apply badge bg-purple-100  text-purple-700  dark:bg-purple-500/15  dark:text-purple-400; }
-
-  /* ── Gradient text ───────────────────────────────────────────────────────── */
-  .gradient-text {
-    @apply bg-gradient-to-r from-brand-400 to-purple-400 bg-clip-text text-transparent;
-  }
-
-  /* ── Shimmer skeleton ────────────────────────────────────────────────────── */
-  .skeleton {
-    @apply bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200
-           dark:from-white/[0.04] dark:via-white/[0.08] dark:to-white/[0.04]
-           animate-shimmer rounded-lg;
-    background-size: 400% 100%;
-  }
-
-  /* ── Glow divider ────────────────────────────────────────────────────────── */
-  .glow-divider {
-    @apply h-px bg-gradient-to-r from-transparent via-brand-500/40 to-transparent;
-  }
-
-  /* ── Page header ─────────────────────────────────────────────────────────── */
+  /* ── Page layout helpers ── */
   .page-header {
     @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8;
   }
   .page-title {
-    @apply text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight;
+    @apply text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight;
   }
-  .page-subtitle {
-    @apply text-sm text-slate-500 dark:text-slate-400 mt-0.5;
+  .page-sub {
+    @apply text-sm text-slate-500 dark:text-slate-500 mt-0.5;
+  }
+
+  /* ── Skeleton ── */
+  .skeleton {
+    @apply rounded-xl animate-shimmer;
+    background: linear-gradient(90deg,
+      rgba(148,163,184,0.12) 25%,
+      rgba(148,163,184,0.22) 50%,
+      rgba(148,163,184,0.12) 75%
+    );
+    background-size: 400% 100%;
+  }
+  .dark .skeleton {
+    background: linear-gradient(90deg,
+      rgba(255,255,255,0.04) 25%,
+      rgba(255,255,255,0.08) 50%,
+      rgba(255,255,255,0.04) 75%
+    );
+    background-size: 400% 100%;
+  }
+
+  /* ── Glow divider ── */
+  .glow-line {
+    @apply h-px;
+    background: linear-gradient(90deg, transparent, rgba(99,102,241,0.4), transparent);
   }
 }
