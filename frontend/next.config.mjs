@@ -41,8 +41,11 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/(.*)',
+        // HTML pages: never cache in browser — always fetch fresh so new deploys are picked up immediately
+        source: '/((?!_next/static|_next/image|favicon|icons|logo|manifest).*)',
         headers: [
+          { key: 'Cache-Control',           value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Pragma',                  value: 'no-cache' },
           { key: 'X-Content-Type-Options',  value: 'nosniff' },
           { key: 'X-Frame-Options',          value: 'DENY' },
           { key: 'Referrer-Policy',          value: 'strict-origin-when-cross-origin' },
@@ -50,7 +53,12 @@ const nextConfig = {
         ],
       },
       {
-        // Long-cache static assets
+        // Next.js hashed static chunks — immutable forever (hash changes on every deploy)
+        source: '/_next/static/(.*)',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+      {
+        // Images and icons — long cache is fine (content-addressed)
         source: '/icons/(.*)',
         headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
       },
