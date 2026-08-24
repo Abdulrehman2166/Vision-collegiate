@@ -424,7 +424,7 @@ export function HeaderBar() {
                   </p>
                 )}
                 {filtered.length === 0 ? (
-                  <p className="px-4 py-8 text-sm text-slate-500 text-center">No pages found for "{query}"</p>
+                  <p className="px-4 py-8 text-sm text-slate-500 text-center">No pages found for &quot;{query}&quot;</p>
                 ) : (
                   filtered.map((item, i) => (
                     <motion.div
