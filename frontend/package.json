@@ -16,12 +16,12 @@
     "framer-motion": "^11.0.0",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.469.0",
-    "next": "15.3.6",
+    "next": "^15.3.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.54.0",
     "react-hot-toast": "^2.4.1",
-    "recharts": "^3.0.0",
+    "recharts": "^3.10.1",
     "zod": "^3.24.0"
   },
   "devDependencies": {
@@ -30,8 +30,8 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.21",
-    "eslint": "^10.0.0",
-    "eslint-config-next": "15.3.6",
+    "eslint": "^10.9.1",
+    "eslint-config-next": "^15.3.6",
     "postcss": "^8.5.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.0"
