@@ -3,11 +3,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { AppShell } from '@/components/layout/AppShell';
-import { StatCard } from '@/components/ui/Card';
 import { SkeletonCard } from '@/components/ui/Loading';
 import {
   Users, CheckCircle2, XCircle, TrendingUp, Clock,
-  CalendarCheck, BookOpen, MessageSquare, FileDown, AlertTriangle,
+  CalendarCheck, BookOpen, MessageSquare, AlertTriangle,
+  Activity, Zap, ArrowRight,
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area,
@@ -22,47 +22,46 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
-// ─── Quick actions ─────────────────────────────────────────────────────────
 const QUICK_ACTIONS = [
-  { label: 'Mark Attendance', icon: CalendarCheck, href: '/attendance', color: 'from-brand-500 to-brand-600', glow: 'rgba(99,102,241,0.3)' },
-  { label: 'Create Test',     icon: BookOpen,      href: '/tests',      color: 'from-purple-500 to-purple-700', glow: 'rgba(168,85,247,0.3)' },
-  { label: 'WhatsApp Blast',  icon: MessageSquare, href: '/whatsapp',   color: 'from-emerald-500 to-emerald-600', glow: 'rgba(16,185,129,0.3)' },
-  { label: 'Analytics',       icon: TrendingUp,    href: '/analytics',  color: 'from-amber-500 to-orange-600', glow: 'rgba(245,158,11,0.3)' },
+  { label: 'Mark Attendance', icon: CalendarCheck, href: '/attendance', from: '#6366f1', to: '#4f46e5', glow: 'rgba(99,102,241,0.45)' },
+  { label: 'Create Test',     icon: BookOpen,      href: '/tests',      from: '#a855f7', to: '#7c3aed', glow: 'rgba(168,85,247,0.45)' },
+  { label: 'WhatsApp Blast',  icon: MessageSquare, href: '/whatsapp',   from: '#10b981', to: '#059669', glow: 'rgba(16,185,129,0.45)' },
+  { label: 'Analytics',       icon: TrendingUp,    href: '/analytics',  from: '#f59e0b', to: '#d97706', glow: 'rgba(245,158,11,0.45)' },
 ];
 
-// ─── Stagger animation ──────────────────────────────────────────────────────
-const stagger = {
-  container: { animate: { transition: { staggerChildren: 0.07 } } },
-  item: {
-    initial: { opacity: 0, y: 16 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16,1,0.3,1] } },
-  },
-};
+const STAT_CONFIGS = [
+  { key: 'totalStudents', title: 'Marked Today', icon: Users,        color: '#6366f1', bg: 'rgba(99,102,241,0.12)',  border: 'rgba(99,102,241,0.2)'  },
+  { key: 'presentToday',  title: 'Present',      icon: CheckCircle2, color: '#10b981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.2)' },
+  { key: 'absentToday',   title: 'Absent',       icon: XCircle,      color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.2)'  },
+  { key: 'pct',           title: 'Attendance',   icon: Activity,     color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.2)' },
+];
+
+function greeting() {
+  const h = new Date().getHours();
+  return h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+}
 
 export default function DashboardPage() {
   const [user, setUser] = useState<ReturnType<typeof getUser>>(null);
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
-  const [trend,   setTrend]   = useState<TrendPoint[]>([]);
-  const [alerts,  setAlerts]  = useState<LowAttendanceAlert[]>([]);
+  const [trend, setTrend]     = useState<TrendPoint[]>([]);
+  const [alerts, setAlerts]   = useState<LowAttendanceAlert[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Hydration-safe: read user from localStorage only after mount
   useEffect(() => { setUser(getUser()); }, []);
 
   const load = useCallback(async () => {
     try {
-      const [sumRes, trendRes, alertRes] = await Promise.all([
+      const [s, t, a] = await Promise.all([
         api.get<ApiResponse<AnalyticsSummary>>('/analytics/attendance/today'),
         api.get<ApiResponse<TrendPoint[]>>('/analytics/attendance/trend?days=14'),
         api.get<ApiResponse<LowAttendanceAlert[]>>('/analytics/attendance/alerts?threshold=75'),
       ]);
-      setSummary(sumRes.data.data);
-      setTrend(trendRes.data.data);
-      setAlerts(alertRes.data.data);
+      setSummary(s.data.data);
+      setTrend(t.data.data);
+      setAlerts(a.data.data);
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } }).response?.data?.message ??
-        'Failed to load dashboard data. Please refresh.';
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to load dashboard';
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -72,306 +71,334 @@ export default function DashboardPage() {
   useEffect(() => { load(); }, [load]);
 
   const pct = summary?.attendancePercentage ?? 0;
-  const sparkPresent = trend.slice(-7).map(t => t.present);
-  const sparkAbsent  = trend.slice(-7).map(t => t.absent);
+  const pctColor = pct >= 80 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444';
+
+  const statValues: Record<string, string | number> = {
+    totalStudents: summary?.totalStudents ?? 0,
+    presentToday:  summary?.presentToday  ?? 0,
+    absentToday:   summary?.absentToday   ?? 0,
+    pct:           `${pct}%`,
+  };
 
   return (
     <AppShell>
-      {/* ── Greeting ────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="mb-8"
-      >
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-600 mb-1 flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5" />
-          {format(new Date(), 'EEEE, MMMM d, yyyy')}
-        </p>
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-          Good {greeting()},{' '}
-          <span className="bg-gradient-to-r from-brand-400 via-brand-500 to-purple-500 bg-clip-text text-transparent">
-            {user?.name?.split(' ')[0] ?? 'there'}
-          </span>{' '}
-          <span className="animate-float inline-block">👋</span>
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-500 mt-1.5">
-          Here&apos;s your institute overview for today.
-        </p>
-      </motion.div>
+      {/* Ambient background glow */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+        <div style={{
+          position:'absolute', top:'-10%', left:'-5%',
+          width:'500px', height:'500px', borderRadius:'50%',
+          background:'radial-gradient(circle, rgba(99,102,241,0.06), transparent 70%)',
+          filter:'blur(60px)',
+        }} />
+        <div style={{
+          position:'absolute', bottom:'10%', right:'-5%',
+          width:'400px', height:'400px', borderRadius:'50%',
+          background:'radial-gradient(circle, rgba(168,85,247,0.05), transparent 70%)',
+          filter:'blur(60px)',
+        }} />
+      </div>
 
-      {/* ── KPI cards ───────────────────────────────────────────────── */}
-      {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
-        </div>
-      ) : (
+      <div style={{ position:'relative', zIndex:1 }}>
+        {/* ── Greeting ── */}
         <motion.div
-          variants={stagger.container}
-          initial="initial"
-          animate="animate"
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          style={{ marginBottom: '28px' }}
         >
-          <motion.div variants={stagger.item}>
-            <StatCard
-              title="Marked Today"
-              value={summary?.totalStudents ?? 0}
-              icon={<Users className="w-4.5 h-4.5" />}
-              color="indigo"
-              sparkline={sparkPresent}
-            />
-          </motion.div>
-          <motion.div variants={stagger.item}>
-            <StatCard
-              title="Present"
-              value={summary?.presentToday ?? 0}
-              icon={<CheckCircle2 className="w-4.5 h-4.5" />}
-              color="emerald"
-              sparkline={sparkPresent}
-              trend={{ value: 2, label: 'vs yesterday' }}
-            />
-          </motion.div>
-          <motion.div variants={stagger.item}>
-            <StatCard
-              title="Absent"
-              value={summary?.absentToday ?? 0}
-              icon={<XCircle className="w-4.5 h-4.5" />}
-              color="red"
-              sparkline={sparkAbsent}
-            />
-          </motion.div>
-          <motion.div variants={stagger.item}>
-            <StatCard
-              title="Attendance"
-              value={`${pct}%`}
-              icon={<TrendingUp className="w-4.5 h-4.5" />}
-              color={pct >= 80 ? 'emerald' : pct >= 60 ? 'amber' : 'red'}
-              sparkline={sparkPresent}
-              trend={{ value: pct >= 75 ? 3 : -2, label: 'this week' }}
-            />
-          </motion.div>
+          <p style={{
+            fontSize:'11px', fontWeight:700, textTransform:'uppercase',
+            letterSpacing:'0.12em', color:'#475569',
+            display:'flex', alignItems:'center', gap:'6px', marginBottom:'8px',
+          }}>
+            <Clock size={13} />
+            {format(new Date(), 'EEEE, MMMM d, yyyy')}
+          </p>
+          <h1 style={{ fontSize:'clamp(22px,4vw,30px)', fontWeight:900, letterSpacing:'-0.02em', color:'#f1f5f9', lineHeight:1.2, margin:0 }}>
+            Good {greeting()},{' '}
+            <span style={{
+              background:'linear-gradient(135deg, #818cf8, #c084fc, #818cf8)',
+              backgroundSize:'200%',
+              WebkitBackgroundClip:'text',
+              WebkitTextFillColor:'transparent',
+              backgroundClip:'text',
+            }}>
+              {user?.name?.split(' ')[0] ?? 'there'}
+            </span>{' '}
+            <span className="animate-float" style={{ display:'inline-block' }}>👋</span>
+          </h1>
+          <p style={{ fontSize:'13px', color:'#64748b', marginTop:'6px' }}>
+            Your institute overview for today
+          </p>
         </motion.div>
-      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* ── KPI Cards ── */}
+        {loading ? (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:'16px', marginBottom:'24px' }}>
+            {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        ) : (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:'16px', marginBottom:'24px' }}>
+            {STAT_CONFIGS.map((cfg, i) => {
+              const Icon = cfg.icon;
+              const val  = statValues[cfg.key];
+              const isAttendance = cfg.key === 'pct';
+              const dotColor = isAttendance ? pctColor : cfg.color;
+              return (
+                <motion.div
+                  key={cfg.key}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: i * 0.07, ease: [0.16,1,0.3,1] }}
+                  className="card card-glow"
+                  style={{ padding:'20px', cursor:'default' }}
+                >
+                  {/* Top row */}
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'16px' }}>
+                    <div style={{
+                      width:'40px', height:'40px', borderRadius:'12px',
+                      background: cfg.bg, border:`1px solid ${cfg.border}`,
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                    }}>
+                      <Icon size={18} style={{ color: cfg.color }} />
+                    </div>
+                    {/* Mini live dot */}
+                    <div style={{
+                      width:'8px', height:'8px', borderRadius:'50%',
+                      background: dotColor,
+                      boxShadow: `0 0 8px ${dotColor}`,
+                    }} className="status-dot" />
+                  </div>
+                  {/* Label */}
+                  <p style={{ fontSize:'10px', fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color:'#475569', marginBottom:'4px' }}>
+                    {cfg.title}
+                  </p>
+                  {/* Value */}
+                  <p style={{ fontSize:'32px', fontWeight:900, color:'#f1f5f9', letterSpacing:'-0.03em', lineHeight:1, margin:0 }}>
+                    {val}
+                  </p>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
 
-        {/* ── Left col: Chart + Alerts ── */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* ── Main grid ── */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:'24px' }} className="lg-grid-3col">
 
-          {/* Trend chart */}
+          {/* Chart */}
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-            className="card p-6"
+            initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
+            transition={{ duration:0.4, delay:0.2 }}
+            className="card"
+            style={{ padding:'24px', gridColumn:'span 2' }}
           >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-9 h-9 rounded-xl bg-brand-500/10 border border-brand-500/20
-                              flex items-center justify-center text-brand-500">
-                <TrendingUp className="w-4 h-4" />
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'20px', flexWrap:'wrap', gap:'12px' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+                <div style={{
+                  width:'36px', height:'36px', borderRadius:'10px',
+                  background:'rgba(99,102,241,0.12)', border:'1px solid rgba(99,102,241,0.2)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                }}>
+                  <TrendingUp size={16} style={{ color:'#6366f1' }} />
+                </div>
+                <div>
+                  <p style={{ fontSize:'13px', fontWeight:700, color:'#f1f5f9', margin:0 }}>Attendance Trend</p>
+                  <p style={{ fontSize:'11px', color:'#475569', margin:0 }}>Last 14 days — Present vs Absent</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-sm font-bold text-slate-900 dark:text-white">Attendance Trend</h2>
-                <p className="text-[11px] text-slate-400 mt-0.5">Last 14 days — Present vs Absent</p>
-              </div>
-
-              {/* Legend */}
-              <div className="ml-auto flex items-center gap-4">
-                {[{ color: '#6366f1', label: 'Present' }, { color: '#ef4444', label: 'Absent' }].map(l => (
-                  <div key={l.label} className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: l.color }} />
-                    <span className="text-[11px] font-semibold text-slate-400">{l.label}</span>
+              <div style={{ display:'flex', gap:'16px' }}>
+                {[{c:'#6366f1',l:'Present'},{c:'#ef4444',l:'Absent'}].map(x=>(
+                  <div key={x.l} style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                    <div style={{ width:'8px',height:'8px',borderRadius:'50%',background:x.c,boxShadow:`0 0 6px ${x.c}` }} />
+                    <span style={{ fontSize:'11px', fontWeight:600, color:'#64748b' }}>{x.l}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {trend.length === 0 ? (
-              <div className="h-48 flex items-center justify-center">
-                <p className="text-sm text-slate-400">No data yet — mark attendance to see trends</p>
+              <div style={{ height:'200px', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <p style={{ color:'#475569', fontSize:'13px' }}>No data yet — mark attendance to see trends</p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <AreaChart data={trend} margin={{ top: 5, right: 4, left: -24, bottom: 0 }}>
+              <ResponsiveContainer width="100%" height={200}>
+                <AreaChart data={trend} margin={{ top:5, right:4, left:-28, bottom:0 }}>
                   <defs>
                     <linearGradient id="gP" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%"   stopColor="#6366f1" stopOpacity={0.35} />
+                      <stop offset="0%"   stopColor="#6366f1" stopOpacity={0.4} />
                       <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="gA" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%"   stopColor="#ef4444" stopOpacity={0.28} />
+                      <stop offset="0%"   stopColor="#ef4444" stopOpacity={0.3} />
                       <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="4 4" stroke="rgba(148,163,184,0.1)" />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={d => format(new Date(d), 'MMM d')}
-                    tick={{ fontSize: 10, fill: '#64748b' }}
-                    axisLine={false} tickLine={false}
-                  />
-                  <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{
-                      background: 'rgba(13,13,35,0.95)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '12px',
-                      boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
-                      backdropFilter: 'blur(16px)',
-                      fontSize: '12px',
-                      color: '#f1f5f9',
-                    }}
-                    labelFormatter={d => format(new Date(d), 'MMM d, yyyy')}
-                    cursor={{ stroke: 'rgba(99,102,241,0.25)', strokeWidth: 1 }}
-                  />
-                  <Area dataKey="present" name="Present" stroke="#6366f1" fill="url(#gP)" strokeWidth={2.5} dot={false} />
-                  <Area dataKey="absent"  name="Absent"  stroke="#ef4444" fill="url(#gA)" strokeWidth={2.5} dot={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                  <XAxis dataKey="date" tickFormatter={d=>format(new Date(d),'MMM d')} tick={{fontSize:10,fill:'#475569'}} axisLine={false} tickLine={false} />
+                  <YAxis tick={{fontSize:10,fill:'#475569'}} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{
+                    background:'rgba(8,8,28,0.97)',
+                    border:'1px solid rgba(99,102,241,0.2)',
+                    borderRadius:'12px',
+                    boxShadow:'0 20px 50px rgba(0,0,0,0.5)',
+                    backdropFilter:'blur(16px)',
+                    fontSize:'12px',
+                    color:'#f1f5f9',
+                  }} labelFormatter={d=>format(new Date(d),'MMM d, yyyy')} cursor={{stroke:'rgba(99,102,241,0.2)',strokeWidth:1}} />
+                  <Area dataKey="present" name="Present" stroke="#6366f1" fill="url(#gP)" strokeWidth={2} dot={false} />
+                  <Area dataKey="absent"  name="Absent"  stroke="#ef4444" fill="url(#gA)" strokeWidth={2} dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
             )}
           </motion.div>
 
-          {/* Low-attendance alerts */}
-          {alerts.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.3 }}
-              className="card p-6"
-            >
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20
-                                flex items-center justify-center text-amber-500">
-                  <AlertTriangle className="w-4 h-4" />
+          {/* Right column: Quick Actions + Alerts */}
+          <motion.div
+            initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }}
+            transition={{ duration:0.4, delay:0.25 }}
+            style={{ display:'flex', flexDirection:'column', gap:'16px' }}
+          >
+            {/* Quick Actions */}
+            <div className="card" style={{ padding:'20px' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'16px' }}>
+                <Zap size={14} style={{ color:'#6366f1' }} />
+                <p style={{ fontSize:'12px', fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.08em', margin:0 }}>Quick Actions</p>
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+                {QUICK_ACTIONS.map((a, i) => {
+                  const Icon = a.icon;
+                  return (
+                    <motion.div key={a.label} initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} transition={{delay:0.3+i*0.06}}>
+                      <Link href={a.href}
+                        style={{
+                          display:'flex', alignItems:'center', gap:'12px',
+                          padding:'12px 14px', borderRadius:'12px', textDecoration:'none',
+                          background:'rgba(255,255,255,0.03)',
+                          border:'1px solid rgba(255,255,255,0.06)',
+                          transition:'all 0.15s ease',
+                        }}
+                        onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.06)';(e.currentTarget as HTMLElement).style.borderColor='rgba(99,102,241,0.2)';}}
+                        onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.03)';(e.currentTarget as HTMLElement).style.borderColor='rgba(255,255,255,0.06)';}}
+                      >
+                        <div style={{
+                          width:'34px', height:'34px', borderRadius:'10px', flexShrink:0,
+                          background:`linear-gradient(135deg, ${a.from}, ${a.to})`,
+                          boxShadow:`0 4px 14px ${a.glow}`,
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                        }}>
+                          <Icon size={16} color="white" />
+                        </div>
+                        <span style={{ fontSize:'13px', fontWeight:600, color:'#cbd5e1', flex:1 }}>{a.label}</span>
+                        <ArrowRight size={14} style={{ color:'#334155' }} />
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* User card */}
+            {user && (
+              <div className="card" style={{ padding:'16px' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'12px' }}>
+                  <div style={{
+                    width:'40px', height:'40px', borderRadius:'12px',
+                    background:'linear-gradient(135deg, #6366f1, #a855f7)',
+                    boxShadow:'0 0 16px -4px rgba(99,102,241,0.6)',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    color:'white', fontWeight:900, fontSize:'16px', flexShrink:0,
+                  }}>
+                    {user.name?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <div>
+                    <p style={{ fontSize:'13px', fontWeight:700, color:'#f1f5f9', margin:0, lineHeight:1.3 }}>{user.name}</p>
+                    <p style={{ fontSize:'11px', color:'#475569', margin:0, textTransform:'capitalize' }}>{user.role === 'admin' ? '⚡ Administrator' : '🎓 Teacher'}</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Low Attendance</h2>
-                  <p className="text-[11px] text-slate-400 mt-0.5">{alerts.length} students below 75%</p>
+                <div className="glow-line" />
+                <div style={{ marginTop:'12px', display:'flex', flexDirection:'column', gap:'6px' }}>
+                  {[
+                    { l:'Email',  v: user.email },
+                    { l:'Access', v: user.role === 'admin' ? 'Full Access' : 'Teacher Access' },
+                  ].map(({l,v})=>(
+                    <div key={l} style={{ display:'flex', justifyContent:'space-between', fontSize:'12px' }}>
+                      <span style={{ color:'#475569' }}>{l}</span>
+                      <span style={{ color:'#94a3b8', fontWeight:600, maxWidth:'60%', textAlign:'right', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{v}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="space-y-2">
-                {alerts.slice(0, 6).map((a, i) => (
-                  <motion.div
-                    key={a.studentId}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.25, delay: 0.05 * i }}
-                    className="flex items-center justify-between px-3.5 py-3 rounded-xl
-                               border border-amber-200/50 dark:border-amber-500/15
-                               bg-amber-50/60 dark:bg-amber-500/[0.05]
-                               hover:bg-amber-100/60 dark:hover:bg-amber-500/[0.08]
-                               transition-colors"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center
-                                      text-amber-600 dark:text-amber-400 text-xs font-black flex-shrink-0">
-                        {a.studentName.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
-                          {a.studentName}
-                          {a.rollNumber && <span className="ml-1.5 text-xs font-normal text-slate-400">#{a.rollNumber}</span>}
-                        </p>
-                        <p className="text-xs text-slate-500 truncate">{a.batchName}</p>
-                      </div>
-                    </div>
-                    <div className="flex-shrink-0 ml-3">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-black
-                        ${a.attendancePercent < 50
-                          ? 'bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400'
-                          : 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400'}`}>
-                        {a.attendancePercent}%
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
+            )}
+          </motion.div>
         </div>
 
-        {/* ── Right col: Quick actions ── */}
-        <motion.div
-          initial={{ opacity: 0, x: 16 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4, delay: 0.25 }}
-          className="space-y-4"
-        >
-          <div className="card p-5">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Quick Actions</h2>
-            <div className="space-y-2.5">
-              {QUICK_ACTIONS.map((action, i) => {
-                const Icon = action.icon;
-                return (
-                  <motion.div
-                    key={action.label}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 + i * 0.06 }}
-                  >
-                    <Link
-                      href={action.href}
-                      className="flex items-center gap-3.5 p-3.5 rounded-xl
-                                 border border-slate-200/60 dark:border-white/[0.06]
-                                 hover:border-slate-300/80 dark:hover:border-white/[0.1]
-                                 bg-slate-50/60 dark:bg-white/[0.02]
-                                 hover:bg-white dark:hover:bg-white/[0.05]
-                                 transition-all duration-150 group"
-                    >
-                      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${action.color}
-                                       flex items-center justify-center flex-shrink-0`}
-                           style={{ boxShadow: `0 4px 12px ${action.glow}` }}>
-                        <Icon className="w-4 h-4 text-white" />
-                      </div>
-                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300
-                                       group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-                        {action.label}
-                      </span>
-                      <svg className="w-4 h-4 ml-auto text-slate-300 dark:text-slate-700
-                                      group-hover:text-slate-500 dark:group-hover:text-slate-400
-                                      group-hover:translate-x-0.5 transition-all"
-                           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </Link>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Role info card */}
-          <div className="card p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600
-                              flex items-center justify-center text-white font-black text-base shadow-glow-sm">
-                {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
+        {/* Low attendance alerts */}
+        {!loading && alerts.length > 0 && (
+          <motion.div
+            initial={{opacity:0,y:16}} animate={{opacity:1,y:0}}
+            transition={{duration:0.4,delay:0.35}}
+            className="card"
+            style={{ padding:'24px', marginTop:'24px' }}
+          >
+            <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'16px' }}>
+              <div style={{
+                width:'36px', height:'36px', borderRadius:'10px',
+                background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.2)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+              }}>
+                <AlertTriangle size={16} style={{ color:'#f59e0b' }} />
               </div>
               <div>
-                <p className="text-sm font-bold text-slate-900 dark:text-white">{user?.name}</p>
-                <p className="text-xs text-slate-400 capitalize mt-0.5">{user?.role}</p>
+                <p style={{ fontSize:'13px', fontWeight:700, color:'#f1f5f9', margin:0 }}>Low Attendance Alerts</p>
+                <p style={{ fontSize:'11px', color:'#475569', margin:0 }}>{alerts.length} students below 75%</p>
               </div>
             </div>
-            <div className="glow-line" />
-            <div className="mt-3 space-y-1.5">
-              {[
-                { label: 'Email', value: user?.email },
-                { label: 'Access', value: user?.role === 'admin' ? 'Full Access' : user?.role === 'teacher' ? 'Teacher Access' : 'Limited Access' },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between text-xs">
-                  <span className="text-slate-400">{label}</span>
-                  <span className="font-semibold text-slate-700 dark:text-slate-300 truncate ml-2 max-w-[60%] text-right">{value}</span>
-                </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+              {alerts.slice(0,6).map((a,i)=>(
+                <motion.div
+                  key={a.studentId}
+                  initial={{opacity:0,x:-8}} animate={{opacity:1,x:0}}
+                  transition={{delay:0.05*i}}
+                  style={{
+                    display:'flex', alignItems:'center', justifyContent:'space-between',
+                    padding:'12px 14px', borderRadius:'12px',
+                    background:'rgba(245,158,11,0.05)',
+                    border:'1px solid rgba(245,158,11,0.12)',
+                  }}
+                >
+                  <div style={{ display:'flex', alignItems:'center', gap:'10px', minWidth:0 }}>
+                    <div style={{
+                      width:'32px', height:'32px', borderRadius:'10px',
+                      background:'rgba(245,158,11,0.15)',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      color:'#f59e0b', fontWeight:900, fontSize:'13px', flexShrink:0,
+                    }}>
+                      {a.studentName.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ minWidth:0 }}>
+                      <p style={{ fontSize:'13px', fontWeight:600, color:'#e2e8f0', margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {a.studentName}
+                        {a.rollNumber && <span style={{ marginLeft:'6px', fontSize:'11px', color:'#475569', fontWeight:400 }}>#{a.rollNumber}</span>}
+                      </p>
+                      <p style={{ fontSize:'11px', color:'#475569', margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.batchName}</p>
+                    </div>
+                  </div>
+                  <span style={{
+                    padding:'4px 10px', borderRadius:'8px', fontSize:'12px', fontWeight:800,
+                    background: a.attendancePercent < 50 ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
+                    color:      a.attendancePercent < 50 ? '#f87171' : '#fbbf24',
+                    border:     `1px solid ${a.attendancePercent < 50 ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
+                    flexShrink: 0, marginLeft:'12px',
+                  }}>
+                    {a.attendancePercent}%
+                  </span>
+                </motion.div>
               ))}
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
       </div>
     </AppShell>
   );
-}
-
-function greeting() {
-  const h = new Date().getHours();
-  return h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
 }
