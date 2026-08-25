@@ -112,9 +112,10 @@ export default function AnalyticsPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
                     dataKey="date"
-                    tickFormatter={(d) => {
-                      const s = typeof d === 'string' || typeof d === 'number' ? d : String(d ?? '');
-                      return s ? format(new Date(s), 'MMM d') : '';
+                    tickFormatter={(v) => {
+                      const s = String(v ?? '');
+                      if (!s) return '';
+                      try { return format(new Date(s as string), 'MMM d'); } catch { return ''; }
                     }}
                     tick={{ fontSize: 10, fill: '#94a3b8' }}
                     axisLine={false} tickLine={false}
@@ -123,9 +124,10 @@ export default function AnalyticsPage() {
                   <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <Tooltip
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
-                    labelFormatter={(d) => {
-                      const s = typeof d === 'string' || typeof d === 'number' ? d : String(d ?? '');
-                      return s ? format(new Date(s), 'MMM d, yyyy') : '';
+                    labelFormatter={(v) => {
+                      const s = String(v ?? '');
+                      if (!s) return '';
+                      try { return format(new Date(s as string), 'MMM d, yyyy'); } catch { return ''; }
                     }}
                   />
                   <Legend />

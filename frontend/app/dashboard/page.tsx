@@ -235,7 +235,7 @@ export default function DashboardPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                  <XAxis dataKey="date" tickFormatter={d=>format(new Date(d),'MMM d')} tick={{fontSize:10,fill:'#475569'}} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="date" tickFormatter={v=>{const s=String(v??'');try{return s?format(new Date(s),'MMM d'):'';}catch{return '';}}} tick={{fontSize:10,fill:'#475569'}} axisLine={false} tickLine={false} />
                   <YAxis tick={{fontSize:10,fill:'#475569'}} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={{
                     background:'rgba(8,8,28,0.97)',
@@ -245,7 +245,7 @@ export default function DashboardPage() {
                     backdropFilter:'blur(16px)',
                     fontSize:'12px',
                     color:'#f1f5f9',
-                  }} labelFormatter={d=>format(new Date(d),'MMM d, yyyy')} cursor={{stroke:'rgba(99,102,241,0.2)',strokeWidth:1}} />
+                  }} labelFormatter={v=>{const s=String(v??'');try{return s?format(new Date(s),'MMM d, yyyy'):'';}catch{return '';}}} cursor={{stroke:'rgba(99,102,241,0.2)',strokeWidth:1}} />
                   <Area dataKey="present" name="Present" stroke="#6366f1" fill="url(#gP)" strokeWidth={2} dot={false} />
                   <Area dataKey="absent"  name="Absent"  stroke="#ef4444" fill="url(#gA)" strokeWidth={2} dot={false} />
                 </AreaChart>
