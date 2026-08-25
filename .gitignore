@@ -6,6 +6,13 @@ node_modules/
 dist/
 .next/
 
+# TypeScript build caches
+*.tsbuildinfo
+
+# Vercel local cache
+.vercel/
+.vercelignore
+
 # Environment files (contain secrets — never commit these)
 .env
 .env.local

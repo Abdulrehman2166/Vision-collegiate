@@ -112,7 +112,10 @@ export default function AnalyticsPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
                     dataKey="date"
-                    tickFormatter={(d) => format(new Date(d), 'MMM d')}
+                    tickFormatter={(d) => {
+                      const s = typeof d === 'string' || typeof d === 'number' ? d : String(d ?? '');
+                      return s ? format(new Date(s), 'MMM d') : '';
+                    }}
                     tick={{ fontSize: 10, fill: '#94a3b8' }}
                     axisLine={false} tickLine={false}
                     interval="preserveStartEnd"
@@ -120,7 +123,10 @@ export default function AnalyticsPage() {
                   <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <Tooltip
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
-                    labelFormatter={(d) => format(new Date(d), 'MMM d, yyyy')}
+                    labelFormatter={(d) => {
+                      const s = typeof d === 'string' || typeof d === 'number' ? d : String(d ?? '');
+                      return s ? format(new Date(s), 'MMM d, yyyy') : '';
+                    }}
                   />
                   <Legend />
                   <Bar dataKey="present" name="Present" fill="#3b82f6" radius={[4,4,0,0]} />

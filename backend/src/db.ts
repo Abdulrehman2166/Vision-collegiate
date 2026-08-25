@@ -1,4 +1,4 @@
-﻿import { Pool } from 'pg';
+import { Pool } from 'pg';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -30,7 +30,7 @@ const pool = (() => {
 
     const colonIdx = userPass.indexOf(':');
     const user     = userPass.slice(0, colonIdx);
-    const password = userPass.slice(colonIdx + 1); // raw, no URL decoding
+    const password = decodeURIComponent(userPass.slice(colonIdx + 1));
 
     const [hostPort, database] = hostPart.split('/');
     const lastColon = hostPort.lastIndexOf(':');

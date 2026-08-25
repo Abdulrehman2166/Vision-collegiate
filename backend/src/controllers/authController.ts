@@ -69,11 +69,11 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
     const token = signToken({ id: user.id, role: user.role, email: user.email });
 
-    // Set HttpOnly cookie for SSR frontend
+    const isProd = process.env.NODE_ENV === 'production';
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
