@@ -32,7 +32,7 @@ export async function getAllBatches(req: Request, res: Response, next: NextFunct
     const activeOnly = req.query.active !== 'false';
     const allowed = await scopedBatchIds(req.user!);
     const filters: string[] = [];
-    const params: number[][] = [];
+    const params: (number | number[])[] = [];
     if (activeOnly) filters.push('b.is_active = TRUE');
     if (allowed) {
       if (allowed.length === 0) {

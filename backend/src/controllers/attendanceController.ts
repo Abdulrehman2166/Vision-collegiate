@@ -146,7 +146,6 @@ export async function generateAttendancePDF(req: Request, res: Response, _next: 
       if (!rows.rows.length) throw createError('No attendance records found for this date', 404);
 
       pdfBuffer = await pdfService.generateAttendanceSlipPdf(rows.rows as pdfService.AttendanceRecord[]);
-      // Determine file extension: .pdf if successful, .html if PDF rendering unavailable
       const isHtmlFallback = pdfBuffer.toString('utf-8', 0, 15).includes('<!DOCTYPE');
       filePath  = isHtmlFallback
         ? `attendance/slips/${data.batchId}/${data.date}.html`
@@ -174,7 +173,6 @@ export async function generateAttendancePDF(req: Request, res: Response, _next: 
       if (!rows.rows.length) throw createError('No attendance records found for this month', 404);
 
       if (data.studentId) {
-        // Single student PDF
         const student   = rows.rows[0];
         const records   = rows.rows.map((r) => ({ date: r.date, status: r.status }));
         const presentDays = records.filter((r) => ['present', 'late'].includes(r.status)).length;
@@ -189,8 +187,6 @@ export async function generateAttendancePDF(req: Request, res: Response, _next: 
         });
         filePath = `attendance/monthly/${data.batchId}/${data.month}-${student.id}.pdf`;
       } else {
-        // Batch-level: generate one PDF per student and zip, or return the first student's PDF
-        // For now return the first student's card and note the limitation in the response
         const studentIds = [...new Set<number>(rows.rows.map((r: { id: number }) => r.id as number))];
         const firstId = studentIds[0];
         const firstRows = rows.rows.filter((r) => r.id === firstId);
@@ -208,43 +204,59 @@ export async function generateAttendancePDF(req: Request, res: Response, _next: 
         });
         filePath = `attendance/monthly/${data.batchId}/${data.month}-${firstId}.pdf`;
 
-        // Upload and return with a hint that per-student generation is supported via `studentId`
-        const publicUrl = await storageService.uploadFile(pdfBuffer, filePath);
-        const downloadUrl = await storageService.resolveDownloadUrl(publicUrl, 3600);
-        return res.json({
-          success: true,
-          data: {
-            url: downloadUrl,
-            note: `Generated for student #${firstId}. Pass \`studentId\` to generate for a specific student. Total students in batch for this month: ${studentIds.length}.`,
-            totalStudents: studentIds.length,
-            studentIds,
-          },
-        });
+        const uploadResult = await tryUpload(pdfBuffer, filePath);
+        if (uploadResult) {
+          return res.json({
+            success: true,
+            data: {
+              url: uploadResult,
+              note: `Generated for student #${firstId}. Pass \`studentId\` to generate for a specific student. Total students in batch for this month: ${studentIds.length}.`,
+              totalStudents: studentIds.length,
+              studentIds,
+            },
+          });
+        }
+        return sendBufferDirectly(res, pdfBuffer, 'attendance-monthly-card.html');
       }
     }
 
-    let publicUrl: string;
-    try {
+    const uploadResult = await tryUpload(pdfBuffer, filePath);
+    if (uploadResult) {
       const isHtml = filePath.endsWith('.html');
-      publicUrl = await storageService.uploadFile(pdfBuffer, filePath, isHtml ? 'text/html' : 'application/pdf');
-    } catch (err) {
-      throw createError(`Document upload failed: ${(err as Error).message}`, 502);
+      return res.json({
+        success: true,
+        data: {
+          url: uploadResult,
+          ...(isHtml && { format: 'html', note: 'PDF rendering unavailable; HTML document provided. You can print to PDF from your browser.' }),
+        },
+      });
     }
-    const downloadUrl = await storageService.resolveDownloadUrl(publicUrl, 3600);
-    const isHtml = filePath.endsWith('.html');
-    res.json({
-      success: true,
-      data: {
-        url: downloadUrl,
-        ...(isHtml && { format: 'html', note: 'PDF rendering unavailable; HTML document provided. You can print to PDF from your browser.' }),
-      },
-    });
+
+    return sendBufferDirectly(res, pdfBuffer, filePath.endsWith('.html') ? 'attendance.html' : 'attendance.pdf');
   } catch (error) {
     console.error('PDF Generation Backend Error:', error);
     const statusCode = (error as any).statusCode ?? 500;
     const message = statusCode === 500 ? 'PDF generation failed' : (error as Error).message;
     res.status(statusCode).json({ success: false, message });
   }
+}
+
+async function tryUpload(buffer: Buffer, filePath: string): Promise<string | null> {
+  try {
+    const isHtml = filePath.endsWith('.html');
+    const publicUrl = await storageService.uploadFile(buffer, filePath, isHtml ? 'text/html' : 'application/pdf');
+    return await storageService.resolveDownloadUrl(publicUrl, 3600);
+  } catch (err) {
+    console.error('Storage upload failed, falling back to direct response:', (err as Error).message);
+    return null;
+  }
+}
+
+function sendBufferDirectly(res: Response, buffer: Buffer, filename: string) {
+  const isHtml = filename.endsWith('.html');
+  res.setHeader('Content-Type', isHtml ? 'text/html; charset=utf-8' : 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+  res.send(buffer);
 }
 
 /** POST /api/v1/attendance/reports/send-whatsapp */
