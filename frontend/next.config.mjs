@@ -32,9 +32,7 @@ const nextConfig = {
   // ── API proxy ──────────────────────────────────────────────────────────
   async rewrites() {
     const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '');
-    const apiUrl = configuredApiUrl?.includes('vision-collegiate-api.up.railway.app')
-      ? 'https://web-production-7ab5f.up.railway.app'
-      : (configuredApiUrl ?? 'https://web-production-7ab5f.up.railway.app');
+    const apiUrl = configuredApiUrl || 'https://visioncollegiateapi-qidn8sah.b4a.run';
     return [
       {
         source: '/api/v1/:path*',
