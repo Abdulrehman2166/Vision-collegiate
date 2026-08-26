@@ -31,7 +31,7 @@ const nextConfig = {
 
   // ── API proxy ──────────────────────────────────────────────────────────
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'https://web-production-7ab5f.up.railway.app';
     return [
       {
         source: '/api/v1/:path*',
