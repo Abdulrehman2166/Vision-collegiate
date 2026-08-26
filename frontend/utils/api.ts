@@ -9,7 +9,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: `${process.env.NEXT_PUBLIC_API_URL || 'https://visioncollegiateapi-qidn8sah.b4a.run'}/api/v1`,
+  baseURL: '/api/v1',
   withCredentials: true, // sends the HttpOnly cookie automatically
   headers: { 'Content-Type': 'application/json' },
 });

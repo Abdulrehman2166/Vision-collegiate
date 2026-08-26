@@ -31,12 +31,10 @@ const nextConfig = {
 
   // ── API proxy ──────────────────────────────────────────────────────────
   async rewrites() {
-    const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '');
-    const apiUrl = configuredApiUrl || 'https://visioncollegiateapi-qidn8sah.b4a.run';
     return [
       {
         source: '/api/v1/:path*',
-        destination: `${apiUrl}/api/v1/:path*`,
+        destination: 'https://visioncollegiateapi-qidn8sah.b4a.run/api/v1/:path*',
       },
     ];
   },
