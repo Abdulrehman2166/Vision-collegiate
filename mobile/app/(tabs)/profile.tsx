@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   avatarText:   { fontSize: 36, fontWeight: '700', color: '#fff' },
   name:         { fontSize: 22, fontWeight: '700', color: Colors.text },
   role: {
-    fontSize: 14, color: Colors.textSecondary, marginTop: 4,
+    fontSize: 14, color: Colors.textSecondary,
     backgroundColor: '#dbeafe', paddingHorizontal: 12, paddingVertical: 4,
     borderRadius: 12, marginTop: 8,
   },

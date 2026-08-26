@@ -66,6 +66,7 @@ export interface Student {
   roll_number: string | null;
   parent_name: string | null;
   parent_phone: string | null;
+  parent_email: string | null;
   status: string;
 }
 
@@ -83,6 +84,7 @@ export interface Test {
   subject: string;
   grade: string;
   stream: string | null;
+  batch_id: number | null;
   batch_name: string | null;
   total_marks: number;
   duration_mins: number;
