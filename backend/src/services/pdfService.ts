@@ -5,6 +5,15 @@
  */
 import { logger } from '../utils/logger';
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 async function htmlToPdf(html: string): Promise<Buffer> {
   // Try puppeteer first
   try {
@@ -58,10 +67,10 @@ export function buildAttendanceSlipHtml(records: AttendanceRecord[]): string {
     .map(
       (r) => `
       <tr>
-        <td>${r.rollNumber}</td>
-        <td>${r.studentName}</td>
-        <td>${r.batchName}</td>
-        <td class="${r.status}">${r.status.toUpperCase()}</td>
+        <td>${escapeHtml(r.rollNumber)}</td>
+        <td>${escapeHtml(r.studentName)}</td>
+        <td>${escapeHtml(r.batchName)}</td>
+        <td class="${escapeHtml(r.status)}">${escapeHtml(r.status).toUpperCase()}</td>
       </tr>`,
     )
     .join('');
@@ -86,14 +95,14 @@ export function buildAttendanceSlipHtml(records: AttendanceRecord[]): string {
 </head>
 <body>
   <h1>Vision Collegiate</h1>
-  <h2>Attendance Slip – ${records[0]?.date ?? ''}</h2>
+  <h2>Attendance Slip – ${escapeHtml(records[0]?.date)}</h2>
   <table>
     <thead>
       <tr><th>Roll No.</th><th>Student Name</th><th>Batch</th><th>Status</th></tr>
     </thead>
     <tbody>${rows}</tbody>
   </table>
-  <div class="footer">Generated on ${new Date().toLocaleString('en-IN')}</div>
+  <div class="footer">Generated on ${escapeHtml(new Date().toLocaleString('en-IN'))}</div>
 </body>
 </html>`;
 }
@@ -118,8 +127,8 @@ export function buildMonthlyCardHtml(data: MonthlyAttendanceData): string {
   const rows = data.records
     .map(
       (r) => `<tr>
-        <td>${r.date}</td>
-        <td class="${r.status}">${r.status.toUpperCase()}</td>
+        <td>${escapeHtml(r.date)}</td>
+        <td class="${escapeHtml(r.status)}">${escapeHtml(r.status).toUpperCase()}</td>
       </tr>`,
     )
     .join('');
@@ -144,8 +153,8 @@ export function buildMonthlyCardHtml(data: MonthlyAttendanceData): string {
 </head>
 <body>
   <h1>Vision Collegiate</h1>
-  <h2>Monthly Attendance Card – ${data.month}</h2>
-  <p><strong>Name:</strong> ${data.studentName} &nbsp; <strong>Roll No.:</strong> ${data.rollNumber} &nbsp; <strong>Batch:</strong> ${data.batchName}</p>
+  <h2>Monthly Attendance Card – ${escapeHtml(data.month)}</h2>
+  <p><strong>Name:</strong> ${escapeHtml(data.studentName)} &nbsp; <strong>Roll No.:</strong> ${escapeHtml(data.rollNumber)} &nbsp; <strong>Batch:</strong> ${escapeHtml(data.batchName)}</p>
   <div class="summary">Present: ${data.presentDays} / ${data.totalDays} days &nbsp;|&nbsp; Attendance: ${percentage}%</div>
   <table>
     <thead><tr><th>Date</th><th>Status</th></tr></thead>
@@ -193,15 +202,15 @@ export function buildTestPaperHtml(
   let body = '';
   let qNum = 1;
   for (const [section, qs] of sections) {
-    body += `<h3 class="section-header">${section}</h3>`;
+    body += `<h3 class="section-header">${escapeHtml(section)}</h3>`;
     for (const q of qs) {
       body += `<div class="question">
-        <p><strong>Q${qNum}.</strong> ${q.question} <span class="marks">[${q.marks} mark${q.marks > 1 ? 's' : ''}]</span></p>`;
+        <p><strong>Q${qNum}.</strong> ${escapeHtml(q.question)} <span class="marks">[${q.marks} mark${q.marks > 1 ? 's' : ''}]</span></p>`;
       if (q.options?.length) {
-        body += `<ol type="A">${q.options.map((o) => `<li>${o}</li>`).join('')}</ol>`;
+        body += `<ol type="A">${q.options.map((o) => `<li>${escapeHtml(o)}</li>`).join('')}</ol>`;
       }
       if (includeAnswers && q.answer) {
-        body += `<p class="answer"><strong>Answer:</strong> ${q.answer}</p>`;
+        body += `<p class="answer"><strong>Answer:</strong> ${escapeHtml(q.answer)}</p>`;
       }
       body += `</div>`;
       qNum++;
@@ -225,12 +234,12 @@ export function buildTestPaperHtml(
 </style>
 </head>
 <body>
-  <h1>Vision Collegiate${answerLabel}</h1>
+  <h1>Vision Collegiate${escapeHtml(answerLabel)}</h1>
   <div class="meta">
-    <strong>${meta.title}</strong> &nbsp;|&nbsp; ${meta.subject} &nbsp;|&nbsp;
-    Grade: ${meta.grade}${meta.stream ? ' – ' + meta.stream : ''} &nbsp;|&nbsp;
+    <strong>${escapeHtml(meta.title)}</strong> &nbsp;|&nbsp; ${escapeHtml(meta.subject)} &nbsp;|&nbsp;
+    Grade: ${escapeHtml(meta.grade)}${meta.stream ? ' – ' + escapeHtml(meta.stream) : ''} &nbsp;|&nbsp;
     Total Marks: ${meta.totalMarks} &nbsp;|&nbsp; Duration: ${meta.durationMins} min
-    ${meta.testDate ? `&nbsp;|&nbsp; Date: ${meta.testDate}` : ''}
+    ${meta.testDate ? `&nbsp;|&nbsp; Date: ${escapeHtml(meta.testDate)}` : ''}
   </div>
   <hr/>${body}
 </body>

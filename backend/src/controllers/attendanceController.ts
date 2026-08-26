@@ -5,6 +5,7 @@ import { createError } from '../middleware/errorHandler';
 import * as pdfService from '../services/pdfService';
 import * as storageService from '../services/storageService';
 import * as whatsappService from '../services/whatsappService';
+import { assertBatchAccess, assertStudentAccess } from '../utils/access';
 
 const markSchema = z.object({
   batchId: z.number().int().positive(),
@@ -24,6 +25,16 @@ export async function markBatchAttendance(req: Request, res: Response, next: Nex
   try {
     const data = markSchema.parse(req.body);
     const markedBy = req.user!.id;
+    await assertBatchAccess(req.user!, data.batchId);
+
+    const ids = data.records.map((r) => r.studentId);
+    const belong = await pool.query(
+      `SELECT id FROM students WHERE batch_id = $1 AND id = ANY($2::int[])`,
+      [data.batchId, ids],
+    );
+    if (belong.rows.length !== ids.length) {
+      throw createError('One or more students do not belong to this batch', 400);
+    }
 
     await client.query('BEGIN');
 
@@ -56,6 +67,7 @@ export async function markBatchAttendance(req: Request, res: Response, next: Nex
 export async function getBatchAttendanceByDate(req: Request, res: Response, next: NextFunction) {
   try {
     const { batchId } = req.params;
+    await assertBatchAccess(req.user!, Number(batchId));
     const date = req.query.date as string;
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       throw createError('Query param `date` (YYYY-MM-DD) is required', 400);
@@ -80,6 +92,7 @@ export async function getBatchAttendanceByDate(req: Request, res: Response, next
 export async function getStudentAttendance(req: Request, res: Response, next: NextFunction) {
   try {
     const { studentId } = req.params;
+    await assertStudentAccess(req.user!, Number(studentId));
     const from = (req.query.from as string) || '1970-01-01';
     const to   = (req.query.to   as string) || new Date().toISOString().split('T')[0];
 
@@ -110,6 +123,8 @@ export async function generateAttendancePDF(req: Request, res: Response, next: N
     });
 
     const data = schema.parse(req.body);
+    await assertBatchAccess(req.user!, data.batchId);
+    if (data.studentId) await assertStudentAccess(req.user!, data.studentId);
 
     let pdfBuffer: Buffer;
     let filePath: string;
@@ -191,10 +206,11 @@ export async function generateAttendancePDF(req: Request, res: Response, next: N
 
         // Upload and return with a hint that per-student generation is supported via `studentId`
         const publicUrl = await storageService.uploadFile(pdfBuffer, filePath);
+        const downloadUrl = await storageService.resolveDownloadUrl(publicUrl, 3600);
         return res.json({
           success: true,
           data: {
-            url: publicUrl,
+            url: downloadUrl,
             note: `Generated for student #${firstId}. Pass \`studentId\` to generate for a specific student. Total students in batch for this month: ${studentIds.length}.`,
             totalStudents: studentIds.length,
             studentIds,
@@ -204,7 +220,8 @@ export async function generateAttendancePDF(req: Request, res: Response, next: N
     }
 
     const publicUrl = await storageService.uploadFile(pdfBuffer, filePath);
-    res.json({ success: true, data: { url: publicUrl } });
+    const downloadUrl = await storageService.resolveDownloadUrl(publicUrl, 3600);
+    res.json({ success: true, data: { url: downloadUrl } });
   } catch (err) {
     next(err);
   }
@@ -221,6 +238,9 @@ export async function sendAttendanceToParents(req: Request, res: Response, next:
     });
 
     const data = schema.parse(req.body);
+    await assertBatchAccess(req.user!, data.batchId);
+    storageService.assertAllowedDocumentUrl(data.documentUrl);
+    const documentUrl = await storageService.resolveDownloadUrl(data.documentUrl, 3600);
 
     // Get all parents of students in this batch
     const studentsRes = await pool.query(
@@ -246,7 +266,7 @@ export async function sendAttendanceToParents(req: Request, res: Response, next:
 
     const results = await whatsappService.sendDocumentBulk(
       recipients,
-      data.documentUrl,
+      documentUrl,
       caption,
       'attendance.pdf',
       data.messageType,

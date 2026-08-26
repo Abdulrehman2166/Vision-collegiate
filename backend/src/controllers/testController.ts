@@ -5,6 +5,7 @@ import { createError } from '../middleware/errorHandler';
 import * as pdfService from '../services/pdfService';
 import * as storageService from '../services/storageService';
 import * as whatsappService from '../services/whatsappService';
+import { assertBatchAccess, assertTestAccess, isStaff, scopedBatchIds } from '../utils/access';
 
 const questionSchema = z.object({
   section:       z.string().optional().nullable(),
@@ -35,6 +36,7 @@ export async function generateTestPaper(req: Request, res: Response, next: NextF
   try {
     const data = testSchema.parse(req.body);
     const createdBy = req.user!.id;
+    if (data.batch_id) await assertBatchAccess(req.user!, data.batch_id);
 
     await client.query('BEGIN');
 
@@ -106,9 +108,14 @@ export async function generateTestPaper(req: Request, res: Response, next: NextF
 
     await client.query('COMMIT');
 
+    const [studentDownloadUrl, teacherDownloadUrl] = await Promise.all([
+      storageService.resolveDownloadUrl(studentUrl, 7 * 24 * 3600),
+      storageService.resolveDownloadUrl(teacherUrl, 3600),
+    ]);
+
     res.status(201).json({
       success: true,
-      data: { ...test, student_pdf_url: studentUrl, teacher_pdf_url: teacherUrl },
+      data: { ...test, student_pdf_url: studentDownloadUrl, teacher_pdf_url: teacherDownloadUrl },
     });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -129,11 +136,26 @@ export async function getAllTests(req: Request, res: Response, next: NextFunctio
     const batchId = req.query.batchId ? parseInt(req.query.batchId as string) : undefined;
 
     const conditions: string[] = [];
-    const params: (string | number)[] = [];
+    const params: (string | number | number[])[] = [];
     let p = 1;
 
+    const allowed = await scopedBatchIds(req.user!);
+    if (allowed) {
+      if (allowed.length === 0) {
+        res.json({ success: true, data: [], meta: { total: 0, page, limit, pages: 0 } });
+        return;
+      }
+      conditions.push(`(t.batch_id = ANY($${p}::int[]) OR t.created_by = $${p + 1})`);
+      params.push(allowed, req.user!.id);
+      p += 2;
+    }
+
     if (grade)   { conditions.push(`t.grade = $${p++}`);    params.push(grade); }
-    if (batchId) { conditions.push(`t.batch_id = $${p++}`); params.push(batchId); }
+    if (batchId) {
+      if (allowed && !allowed.includes(batchId)) throw createError('Not assigned to this batch', 403);
+      conditions.push(`t.batch_id = $${p++}`);
+      params.push(batchId);
+    }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -152,9 +174,15 @@ export async function getAllTests(req: Request, res: Response, next: NextFunctio
       params,
     );
 
+    const data = await Promise.all(dataRes.rows.map(async (test) => ({
+      ...test,
+      student_pdf_url: await storageService.resolveDownloadUrl(test.student_pdf_url, 7 * 24 * 3600),
+      teacher_pdf_url: await storageService.resolveDownloadUrl(test.teacher_pdf_url, 3600),
+    })));
+
     res.json({
       success: true,
-      data: dataRes.rows,
+      data,
       meta: { total, page, limit, pages: Math.ceil(total / limit) },
     });
   } catch (err) {
@@ -176,15 +204,33 @@ export async function getTestById(req: Request, res: Response, next: NextFunctio
       [id],
     );
     if (!testRes.rows.length) throw createError('Test not found', 404);
+    const test = testRes.rows[0];
+    await assertTestAccess(req.user!, test);
 
     const questionsRes = await pool.query(
       'SELECT * FROM test_questions WHERE test_id = $1 ORDER BY order_index',
       [id],
     );
 
+    const staff = isStaff(req.user!);
+    const questions = staff
+      ? questionsRes.rows
+      : questionsRes.rows.map((q) => {
+          const { answer: _answer, ...rest } = q;
+          return rest;
+        });
+
+    const payload = { ...test, questions };
+    if (!staff) {
+      delete payload.teacher_pdf_url;
+    } else {
+      payload.teacher_pdf_url = await storageService.resolveDownloadUrl(test.teacher_pdf_url, 3600);
+    }
+    payload.student_pdf_url = await storageService.resolveDownloadUrl(test.student_pdf_url, 7 * 24 * 3600);
+
     res.json({
       success: true,
-      data: { ...testRes.rows[0], questions: questionsRes.rows },
+      data: payload,
     });
   } catch (err) {
     next(err);
@@ -204,11 +250,21 @@ export async function exportTestPDF(req: Request, res: Response, next: NextFunct
 
     const testRes = await pool.query('SELECT * FROM tests WHERE id = $1', [id]);
     if (!testRes.rows.length) throw createError('Test not found', 404);
-
     const test = testRes.rows[0];
-    const url  = type === 'teacher' ? test.teacher_pdf_url : test.student_pdf_url;
+    await assertTestAccess(req.user!, test);
 
-    if (!url) throw createError('PDF not yet generated for this test', 404);
+    // Only teachers/admins can get teacher PDF
+    if (type === 'teacher' && !isStaff(req.user!)) {
+      throw createError('Not authorized to access teacher PDF', 403);
+    }
+
+    const stored = type === 'teacher' ? test.teacher_pdf_url : test.student_pdf_url;
+    if (!stored) throw createError('PDF not yet generated for this test', 404);
+
+    const url = await storageService.resolveDownloadUrl(
+      stored as string,
+      type === 'teacher' ? 600 : 7 * 24 * 3600,
+    );
 
     res.json({ success: true, data: { url, type } });
   } catch (err) {
@@ -225,8 +281,11 @@ export async function dispatchTestToStudents(req: Request, res: Response, next: 
     if (!testRes.rows.length) throw createError('Test not found', 404);
 
     const test = testRes.rows[0];
+    await assertTestAccess(req.user!, test);
+    if (test.batch_id) await assertBatchAccess(req.user!, Number(test.batch_id));
     if (!test.student_pdf_url) throw createError('Student PDF not yet generated', 400);
     if (!test.batch_id)        throw createError('Test is not assigned to a batch', 400);
+    const documentUrl = await storageService.resolveDownloadUrl(test.student_pdf_url as string, 3600);
 
     const studentsRes = await pool.query(
       `SELECT s.name, s.parent_phone, s.parent_name
@@ -246,7 +305,7 @@ export async function dispatchTestToStudents(req: Request, res: Response, next: 
 
     const results = await whatsappService.sendDocumentBulk(
       recipients,
-      test.student_pdf_url as string,
+      documentUrl,
       `Test Paper: ${test.title} – Vision Collegiate`,
       `${test.title}.pdf`,
       'test_paper',
@@ -271,6 +330,10 @@ export async function scheduleTestDispatch(req: Request, res: Response, next: Ne
       dispatch_at: z.string(), // ISO timestamp
     });
     const data = schema.parse(req.body);
+    await assertBatchAccess(req.user!, data.batch_id);
+    const testRes = await pool.query('SELECT id, batch_id, created_by FROM tests WHERE id = $1', [id]);
+    if (!testRes.rows.length) throw createError('Test not found', 404);
+    await assertTestAccess(req.user!, testRes.rows[0]);
 
     const result = await pool.query(
       `INSERT INTO test_schedules (test_id, batch_id, dispatch_at)
