@@ -86,7 +86,7 @@ export function buildAttendanceSlipHtml(records: AttendanceRecord[]): string {
         <td>${escapeHtml(r.rollNumber)}</td>
         <td>${escapeHtml(r.studentName)}</td>
         <td>${escapeHtml(r.batchName)}</td>
-        <td class="${escapeHtml(r.status)}">${escapeHtml(r.status).toUpperCase()}</td>
+        <td style="text-align:center"><span class="badge ${escapeHtml(r.status)}">${escapeHtml(r.status).toUpperCase()}</span></td>
       </tr>`,
     )
     .join('');
@@ -96,17 +96,22 @@ export function buildAttendanceSlipHtml(records: AttendanceRecord[]): string {
 <head>
 <meta charset="UTF-8">
 <style>
-  body { font-family: Arial, sans-serif; font-size: 12px; margin: 0; padding: 20px; }
-  h1   { text-align: center; font-size: 18px; margin-bottom: 4px; color: #1e3a5f; }
-  h2   { text-align: center; font-size: 13px; color: #555; margin-top: 0; }
-  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-  th, td { border: 1px solid #ccc; padding: 7px 10px; text-align: left; }
-  th { background: #1e3a5f; color: #fff; }
-  tr:nth-child(even) { background: #f5f8ff; }
-  .present { color: #16a34a; font-weight: bold; }
-  .absent  { color: #dc2626; font-weight: bold; }
-  .late    { color: #d97706; font-weight: bold; }
-  .footer  { margin-top: 30px; font-size: 10px; text-align: right; color: #888; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; margin: 0; padding: 24px; color: #1a1a2e; background: #fff; }
+  h1 { text-align: center; font-size: 22px; margin: 0 0 2px 0; color: #0f172a; }
+  h2 { text-align: center; font-size: 14px; color: #475569; margin: 0 0 20px 0; font-weight: normal; }
+  table { width: 100%; border-collapse: collapse; margin-top: 0; }
+  th { background: #1e3a5f; color: #ffffff; padding: 10px 14px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #0f172a; }
+  tr:nth-child(even) { background: #f8fafc; }
+  tr:nth-child(odd) { background: #ffffff; }
+  tr:hover { background: #f1f5f9; }
+  .badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; min-width: 80px; text-align: center; }
+  .present { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+  .absent  { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+  .late    { background: #fef9c3; color: #a16207; border: 1px solid #fde047; }
+  .holiday { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+  .footer  { margin-top: 24px; font-size: 10px; text-align: right; color: #94a3b8; }
 </style>
 </head>
 <body>
@@ -114,7 +119,7 @@ export function buildAttendanceSlipHtml(records: AttendanceRecord[]): string {
   <h2>Attendance Slip – ${escapeHtml(records[0]?.date)}</h2>
   <table>
     <thead>
-      <tr><th>Roll No.</th><th>Student Name</th><th>Batch</th><th>Status</th></tr>
+      <tr><th>Roll No.</th><th>Student Name</th><th>Batch</th><th style="text-align:center">Status</th></tr>
     </thead>
     <tbody>${rows}</tbody>
   </table>
@@ -144,7 +149,7 @@ export function buildMonthlyCardHtml(data: MonthlyAttendanceData): string {
     .map(
       (r) => `<tr>
         <td>${escapeHtml(r.date)}</td>
-        <td class="${escapeHtml(r.status)}">${escapeHtml(r.status).toUpperCase()}</td>
+        <td style="text-align:center"><span class="badge ${escapeHtml(r.status)}">${escapeHtml(r.status).toUpperCase()}</span></td>
       </tr>`,
     )
     .join('');
@@ -154,26 +159,36 @@ export function buildMonthlyCardHtml(data: MonthlyAttendanceData): string {
 <head>
 <meta charset="UTF-8">
 <style>
-  body { font-family: Arial, sans-serif; font-size: 12px; padding: 20px; }
-  h1   { text-align: center; color: #1e3a5f; margin-bottom: 2px; }
-  h2   { text-align: center; color: #555; margin-top: 0; font-size: 13px; }
-  .summary { font-size: 14px; font-weight: bold; margin: 16px 0; color: #1e3a5f; }
-  table { width: 50%; border-collapse: collapse; }
-  th, td { border: 1px solid #ccc; padding: 6px 10px; }
-  th { background: #1e3a5f; color: #fff; }
-  tr:nth-child(even) { background: #f5f8ff; }
-  .present { color: #16a34a; font-weight: bold; }
-  .absent  { color: #dc2626; font-weight: bold; }
-  .late    { color: #d97706; font-weight: bold; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; padding: 24px; color: #1a1a2e; background: #fff; }
+  h1 { text-align: center; font-size: 22px; margin: 0 0 2px 0; color: #0f172a; }
+  h2 { text-align: center; font-size: 14px; color: #475569; margin: 0 0 16px 0; font-weight: normal; }
+  .info { font-size: 13px; color: #334155; margin-bottom: 16px; line-height: 1.8; }
+  .info strong { color: #0f172a; }
+  .summary { font-size: 15px; font-weight: 700; margin: 16px 0; padding: 12px 16px; background: #eff6ff; color: #1e40af; border-radius: 8px; border: 1px solid #bfdbfe; text-align: center; }
+  table { width: 60%; margin: 0 auto; border-collapse: collapse; }
+  th { background: #1e3a5f; color: #ffffff; padding: 10px 14px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #0f172a; }
+  tr:nth-child(even) { background: #f8fafc; }
+  tr:nth-child(odd) { background: #ffffff; }
+  .badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; min-width: 80px; text-align: center; }
+  .present { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+  .absent  { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+  .late    { background: #fef9c3; color: #a16207; border: 1px solid #fde047; }
+  .holiday { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
 </style>
 </head>
 <body>
   <h1>Vision Collegiate</h1>
   <h2>Monthly Attendance Card – ${escapeHtml(data.month)}</h2>
-  <p><strong>Name:</strong> ${escapeHtml(data.studentName)} &nbsp; <strong>Roll No.:</strong> ${escapeHtml(data.rollNumber)} &nbsp; <strong>Batch:</strong> ${escapeHtml(data.batchName)}</p>
+  <div class="info">
+    <strong>Name:</strong> ${escapeHtml(data.studentName)} &nbsp;&bull;&nbsp;
+    <strong>Roll No.:</strong> ${escapeHtml(data.rollNumber)} &nbsp;&bull;&nbsp;
+    <strong>Batch:</strong> ${escapeHtml(data.batchName)}
+  </div>
   <div class="summary">Present: ${data.presentDays} / ${data.totalDays} days &nbsp;|&nbsp; Attendance: ${percentage}%</div>
   <table>
-    <thead><tr><th>Date</th><th>Status</th></tr></thead>
+    <thead><tr><th>Date</th><th style="text-align:center">Status</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
 </body>
