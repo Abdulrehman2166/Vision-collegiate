@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Card } from '@/components/ui/Card';
 import { SectionLoader } from '@/components/ui/Loading';
@@ -115,7 +115,7 @@ export default function AnalyticsPage() {
                     tickFormatter={(v) => {
                       const s = String(v ?? '');
                       if (!s) return '';
-                      try { return format(new Date(s as string), 'MMM d'); } catch { return ''; }
+                      try { return format(new Date(s), 'MMM d'); } catch { return ''; }
                     }}
                     tick={{ fontSize: 10, fill: '#94a3b8' }}
                     axisLine={false} tickLine={false}
@@ -124,10 +124,14 @@ export default function AnalyticsPage() {
                   <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <Tooltip
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
-                    labelFormatter={(v) => {
-                      const s = String(v ?? '');
+                    labelFormatter={(label: ReactNode) => {
+                      const s = typeof label === 'string' || typeof label === 'number' ? String(label) : '';
                       if (!s) return '';
-                      try { return format(new Date(s as string), 'MMM d, yyyy'); } catch { return ''; }
+
+                      const date = new Date(s);
+                      if (Number.isNaN(date.getTime())) return s;
+
+                      return format(date, 'MMM d, yyyy');
                     }}
                   />
                   <Legend />
