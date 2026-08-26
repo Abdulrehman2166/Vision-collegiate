@@ -24,10 +24,16 @@ const app = express();
 app.use(helmet());
 
 // Allow multiple CORS origins: comma-separated list in CORS_ORIGIN env var
-const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:3001')
+const configuredOrigins = (process.env.CORS_ORIGIN ?? '')
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
+const allowedOrigins = [
+  'http://localhost:3001',
+  'https://vision-collegiate.vercel.app',
+  'https://web-production-7ab5f.up.railway.app',
+  ...configuredOrigins,
+];
 
 app.use(cors({
   origin: (origin, callback) => {
