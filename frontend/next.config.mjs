@@ -29,16 +29,6 @@ const nextConfig = {
     ],
   },
 
-  // ── API proxy ──────────────────────────────────────────────────────────
-  async rewrites() {
-    return [
-      {
-        source: '/api/v1/:path*',
-        destination: 'https://visioncollegiateapi-qidn8sah.b4a.run/api/v1/:path*',
-      },
-    ];
-  },
-
   // ── Security + cache headers ───────────────────────────────────────────
   async headers() {
     return [
