@@ -20,8 +20,11 @@ async function htmlToPdf(html: string): Promise<Buffer> {
     // Dynamic require avoids TS type checking for optional dependency
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const puppeteer = require('puppeteer') as any;
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
     const browser = await puppeteer.launch({
       headless: true,
+      ...(executablePath ? { executablePath } : {}),
+      timeout: 30000,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
     try {
@@ -44,7 +47,7 @@ async function htmlToPdf(html: string): Promise<Buffer> {
       hint: 'Install puppeteer: npm install puppeteer',
     });
     const serviceErr: Error & { statusCode?: number } = new Error(
-      'PDF generation is not available in this environment. Please install Puppeteer.',
+      'PDF generation is unavailable on the server. Ensure Chromium is installed and PUPPETEER_EXECUTABLE_PATH is configured if required.',
     );
     serviceErr.statusCode = 503;
     throw serviceErr;

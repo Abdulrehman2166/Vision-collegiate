@@ -113,7 +113,10 @@ export default function AttendancePage() {
       });
       setPdfUrl(res.data.data.url);
       toast.success('PDF generated');
-    } catch { toast.error('PDF generation failed'); }
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
+      toast.error(message ?? 'PDF generation failed');
+    }
   }
 
   async function sendWhatsapp() {
