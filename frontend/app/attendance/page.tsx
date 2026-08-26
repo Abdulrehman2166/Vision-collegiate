@@ -5,9 +5,9 @@ import { AppShell } from '@/components/layout/AppShell';
 import { SectionLoader } from '@/components/ui/Loading';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
-import { CheckCircle2, XCircle, Clock, Send, FileDown, CalendarDays } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Send, FileDown, CalendarDays, X, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
-import api, { type ApiResponse, type Batch, type AttendanceRecord } from '@/utils/api';
+import api, { type ApiResponse, type Batch, type AttendanceRecord, type Student } from '@/utils/api';
 
 type Status = 'present' | 'absent' | 'late' | 'holiday';
 
@@ -16,6 +16,8 @@ interface GridRow {
   studentName: string;
   rollNumber:  string;
   status:      Status;
+  parentPhone: string | null;
+  parentName:  string | null;
 }
 
 const statusConfig: Record<Status, { label: string; icon: React.ReactNode; cls: string }> = {
@@ -34,7 +36,8 @@ export default function AttendancePage() {
   const [loading,      setLoading]    = useState(false);
   const [submitting,   setSubmitting] = useState(false);
   const [existing,     setExisting]   = useState<AttendanceRecord[]>([]);
-  const [pdfUrl,       setPdfUrl]     = useState('');
+  const [pdfContent,   setPdfContent] = useState('');
+  const [showPdfModal, setShowPdfModal] = useState(false);
 
   useEffect(() => {
     api.get<ApiResponse<Batch[]>>('/batches?active=true')
@@ -48,14 +51,12 @@ export default function AttendancePage() {
   const fetchGrid = useCallback(async () => {
     if (!batchId || !date) return;
     setLoading(true);
-    setPdfUrl('');
+    setPdfContent('');
     try {
-      // Load students in the batch
-      const studRes  = await api.get<ApiResponse<{ id: number; name: string; roll_number: string }[]>>(
+      const studRes = await api.get<ApiResponse<Student[]>>(
         `/students?batchId=${batchId}&limit=200`,
       );
-      // Load existing attendance for this date
-      const attRes   = await api.get<ApiResponse<AttendanceRecord[]>>(
+      const attRes = await api.get<ApiResponse<AttendanceRecord[]>>(
         `/attendance/batch/${batchId}?date=${date}`,
       );
       setExisting(attRes.data.data);
@@ -68,6 +69,8 @@ export default function AttendancePage() {
           studentName: s.name,
           rollNumber:  s.roll_number ?? '—',
           status:      attMap.get(s.id) ?? 'present',
+          parentPhone: s.parent_phone ?? null,
+          parentName:  s.parent_name ?? null,
         })),
       );
     } catch { toast.error('Failed to load attendance data'); }
@@ -111,7 +114,13 @@ export default function AttendancePage() {
         batchId: parseInt(batchId),
         date,
       });
-      setPdfUrl(res.data.data.url);
+      const url = res.data.data.url;
+      if (url.startsWith('data:')) {
+        const html = atob(url.split(',')[1]);
+        setPdfContent(html);
+      } else {
+        setPdfContent(`<iframe src="${url}" style="width:100%;height:100%;border:none;" />`);
+      }
       toast.success('PDF generated');
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
@@ -119,17 +128,27 @@ export default function AttendancePage() {
     }
   }
 
-  async function sendWhatsapp() {
-    if (!pdfUrl) { toast.error('Generate the PDF first'); return; }
-    try {
-      const res = await api.post<ApiResponse<{ sent: number; failed: number }>>('/attendance/reports/send-whatsapp', {
-        batchId:     parseInt(batchId),
-        documentUrl: pdfUrl,
-        date,
-        messageType: 'daily_slip',
-      });
-      toast.success(`Sent to ${res.data.data.sent} parents`);
-    } catch { toast.error('WhatsApp send failed'); }
+  function sendWhatsappToParents() {
+    const parentsWithPhone = grid.filter((r) => r.parentPhone && r.parentPhone.trim());
+    if (!parentsWithPhone.length) {
+      toast.error('No parent phone numbers found for students in this batch');
+      return;
+    }
+    const batchName = batches.find((b) => String(b.id) === batchId)?.name ?? '';
+    const message = `Dear Parent, this is the attendance update for your child on ${date}. Batch: ${batchName}. Please contact the school for more details. - Vision Collegiate`;
+    const encoded = encodeURIComponent(message);
+
+    let opened = 0;
+    for (const row of parentsWithPhone) {
+      const phone = row.parentPhone!.replace(/[^0-9]/g, '');
+      if (phone.length < 7) {
+        toast.error(`Invalid phone number for ${row.studentName}'s parent: ${row.parentPhone}`);
+        continue;
+      }
+      window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
+      opened++;
+    }
+    toast.success(`Opening WhatsApp for ${opened} parents`);
   }
 
   const present  = grid.filter((r) => r.status === 'present').length;
@@ -237,18 +256,40 @@ export default function AttendancePage() {
             <button onClick={generatePdf} className="btn-secondary">
               <FileDown className="w-4 h-4" /> Generate PDF Slip
             </button>
-            {pdfUrl && (
-              <>
-                <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary">
-                  View PDF
-                </a>
-                <button onClick={sendWhatsapp} className="btn-secondary">
-                  <Send className="w-4 h-4" /> Send to Parents
-                </button>
-              </>
+            {pdfContent && (
+              <button onClick={() => setShowPdfModal(true)} className="btn-secondary">
+                <FileDown className="w-4 h-4" /> View Slip
+              </button>
             )}
+            <button onClick={sendWhatsappToParents} className="btn-secondary">
+              <MessageCircle className="w-4 h-4" /> Share on WhatsApp
+            </button>
           </div>
         </>
+      )}
+
+      {/* PDF Preview Modal */}
+      {showPdfModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="font-semibold text-slate-900 dark:text-white">Attendance Slip – {date}</h3>
+              <button onClick={() => setShowPdfModal(false)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-2">
+              <iframe
+                srcDoc={pdfContent}
+                title="Attendance Slip"
+                className="w-full h-full min-h-[500px] border-0 rounded-lg"
+              />
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 dark:border-slate-700">
+              <button onClick={() => setShowPdfModal(false)} className="btn-secondary text-sm">Close</button>
+            </div>
+          </div>
+        </div>
       )}
     </AppShell>
   );
