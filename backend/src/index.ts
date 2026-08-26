@@ -83,6 +83,16 @@ app.use((_req, res) => {
 // ─── Global error handler ─────────────────────────────────────────────────────
 app.use(errorHandler);
 
+// ─── Prevent crashes from unhandled promise rejections (e.g. Puppeteer) ───────
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled promise rejection:', { reason: String(reason) });
+});
+
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught exception – shutting down:', { message: err.message, stack: err.stack });
+  process.exit(1);
+});
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
 app.listen(PORT, () => {

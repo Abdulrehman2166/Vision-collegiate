@@ -112,7 +112,7 @@ export async function getStudentAttendance(req: Request, res: Response, next: Ne
 // ─── PDF reports ───────────────────────────────────────────────────────────────
 
 /** POST /api/v1/attendance/reports/generate-pdf */
-export async function generateAttendancePDF(req: Request, res: Response, next: NextFunction) {
+export async function generateAttendancePDF(req: Request, res: Response, _next: NextFunction) {
   try {
     const schema = z.object({
       type:    z.enum(['daily_slip', 'monthly_card']),
@@ -145,12 +145,12 @@ export async function generateAttendancePDF(req: Request, res: Response, next: N
       );
       if (!rows.rows.length) throw createError('No attendance records found for this date', 404);
 
-      try {
-        pdfBuffer = await pdfService.generateAttendanceSlipPdf(rows.rows as pdfService.AttendanceRecord[]);
-      } catch (err) {
-        throw createError(`PDF rendering failed: ${(err as Error).message}`, 503);
-      }
-      filePath  = `attendance/slips/${data.batchId}/${data.date}.pdf`;
+      pdfBuffer = await pdfService.generateAttendanceSlipPdf(rows.rows as pdfService.AttendanceRecord[]);
+      // Determine file extension: .pdf if successful, .html if PDF rendering unavailable
+      const isHtmlFallback = pdfBuffer.toString('utf-8', 0, 15).includes('<!DOCTYPE');
+      filePath  = isHtmlFallback
+        ? `attendance/slips/${data.batchId}/${data.date}.html`
+        : `attendance/slips/${data.batchId}/${data.date}.pdf`;
 
     } else {
       // monthly_card
@@ -225,14 +225,25 @@ export async function generateAttendancePDF(req: Request, res: Response, next: N
 
     let publicUrl: string;
     try {
-      publicUrl = await storageService.uploadFile(pdfBuffer, filePath);
+      const isHtml = filePath.endsWith('.html');
+      publicUrl = await storageService.uploadFile(pdfBuffer, filePath, isHtml ? 'text/html' : 'application/pdf');
     } catch (err) {
-      throw createError(`PDF storage upload failed: ${(err as Error).message}`, 502);
+      throw createError(`Document upload failed: ${(err as Error).message}`, 502);
     }
     const downloadUrl = await storageService.resolveDownloadUrl(publicUrl, 3600);
-    res.json({ success: true, data: { url: downloadUrl } });
-  } catch (err) {
-    next(err);
+    const isHtml = filePath.endsWith('.html');
+    res.json({
+      success: true,
+      data: {
+        url: downloadUrl,
+        ...(isHtml && { format: 'html', note: 'PDF rendering unavailable; HTML document provided. You can print to PDF from your browser.' }),
+      },
+    });
+  } catch (error) {
+    console.error('PDF Generation Backend Error:', error);
+    const statusCode = (error as any).statusCode ?? 500;
+    const message = statusCode === 500 ? 'PDF generation failed' : (error as Error).message;
+    res.status(statusCode).json({ success: false, message });
   }
 }
 

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { pool } from '../db';
 import { createError } from '../middleware/errorHandler';
+import { assertBatchAccess, assertStudentAccess, scopedBatchIds } from '../utils/access';
 
 const studentSchema = z.object({
   name:          z.string().min(2),
@@ -12,6 +13,7 @@ const studentSchema = z.object({
   parent_name:   z.string().optional().nullable(),
   parent_phone:  z.string().optional().nullable(),
   parent_email:  z.string().email().optional().nullable(),
+  parent_user_id: z.number().int().positive().optional().nullable(),
   date_of_birth: z.string().optional().nullable(), // ISO date string
   address:       z.string().optional().nullable(),
   user_id:       z.number().int().positive().optional().nullable(),
@@ -31,13 +33,14 @@ export async function createStudent(req: Request, res: Response, next: NextFunct
     const result = await pool.query(
       `INSERT INTO students
          (name, grade, stream, batch_id, roll_number, parent_name, parent_phone, parent_email,
-          date_of_birth, address, user_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+          parent_user_id, date_of_birth, address, user_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
        RETURNING *`,
       [
         data.name, data.grade, data.stream ?? null, data.batch_id ?? null,
         data.roll_number ?? null, data.parent_name ?? null, data.parent_phone ?? null,
-        data.parent_email ?? null, data.date_of_birth ?? null, data.address ?? null,
+        data.parent_email ?? null, data.parent_user_id ?? null,
+        data.date_of_birth ?? null, data.address ?? null,
         data.user_id ?? null,
       ],
     );
@@ -61,11 +64,27 @@ export async function getAllStudents(req: Request, res: Response, next: NextFunc
     const search   = req.query.search   as string | undefined;
 
     const conditions: string[] = [];
-    const params: (string | number)[] = [];
+    const params: (string | number | number[])[] = [];
     let p = 1;
 
+    const allowedBatches = await scopedBatchIds(req.user!);
+    if (allowedBatches) {
+      if (allowedBatches.length === 0) {
+        res.json({ success: true, data: [], meta: { total: 0, page, limit, pages: 0 } });
+        return;
+      }
+      conditions.push(`s.batch_id = ANY($${p++}::int[])`);
+      params.push(allowedBatches);
+    }
+
     if (grade)    { conditions.push(`s.grade = $${p++}`);   params.push(grade); }
-    if (batchId)  { conditions.push(`s.batch_id = $${p++}`); params.push(batchId); }
+    if (batchId)  {
+      if (allowedBatches && !allowedBatches.includes(batchId)) {
+        throw createError('Not assigned to this batch', 403);
+      }
+      conditions.push(`s.batch_id = $${p++}`);
+      params.push(batchId);
+    }
     if (status)   { conditions.push(`s.status = $${p++}`);  params.push(status); }
     if (search)   {
       conditions.push(`(s.name ILIKE $${p} OR s.roll_number ILIKE $${p})`);
@@ -115,6 +134,8 @@ export async function getStudentById(req: Request, res: Response, next: NextFunc
     );
     if (!studentRes.rows.length) throw createError('Student not found', 404);
 
+    await assertStudentAccess(req.user!, Number(id));
+
     // Attendance aggregate
     const attRes = await pool.query(
       `SELECT
@@ -144,8 +165,10 @@ export async function updateStudent(req: Request, res: Response, next: NextFunct
     const { id } = req.params;
     const data = studentSchema.partial().parse(req.body);
 
-    const existing = await pool.query('SELECT id FROM students WHERE id = $1', [id]);
+    const existing = await pool.query('SELECT id, batch_id FROM students WHERE id = $1', [id]);
     if (!existing.rows.length) throw createError('Student not found', 404);
+    await assertStudentAccess(req.user!, Number(id));
+    if (data.batch_id) await assertBatchAccess(req.user!, data.batch_id);
 
     // Build dynamic SET clause
     const fields = Object.keys(data) as (keyof typeof data)[];
@@ -170,9 +193,12 @@ export async function updateStudent(req: Request, res: Response, next: NextFunct
 export async function deleteStudent(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    const result = await pool.query('DELETE FROM students WHERE id = $1 RETURNING id', [id]);
+    const result = await pool.query(
+      `UPDATE students SET status = 'inactive', updated_at = now() WHERE id = $1 RETURNING id`,
+      [id],
+    );
     if (!result.rows.length) throw createError('Student not found', 404);
-    res.json({ success: true, message: 'Student deleted' });
+    res.json({ success: true, message: 'Student deactivated' });
   } catch (err) {
     next(err);
   }

@@ -16,6 +16,7 @@ function escapeHtml(value: unknown): string {
 
 async function htmlToPdf(html: string): Promise<Buffer> {
   // Try puppeteer first
+  let browser: any = null;
   try {
     // Use the bundled Chromium binary on Railway/Linux; use Puppeteer's local
     // browser on Windows development machines.
@@ -26,37 +27,44 @@ async function htmlToPdf(html: string): Promise<Buffer> {
     const chromium = process.platform === 'linux' ? require('@sparticuz/chromium') : undefined;
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH
       ?? (chromium ? await chromium.executablePath() : undefined);
-    const browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
       headless: true,
       ...(executablePath ? { executablePath } : {}),
-      timeout: 30000,
+      timeout: 60000,
       args: chromium?.args ?? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
-    try {
-      const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle0' });
-      const pdf = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' },
-      });
-      return Buffer.from(pdf);
-    } finally {
-      await browser.close();
-    }
-  } catch (err) {
-    // Puppeteer not available in this environment — throw a clear error
-    // rather than silently returning an HTML buffer with a .pdf extension
-    logger.error('Puppeteer is not available. Cannot generate PDF.', {
-      error: (err as Error).message,
-      hint: 'Install puppeteer: npm install puppeteer',
+
+    const page = await browser.newPage();
+    page.setDefaultTimeout(30000);
+    page.setDefaultNavigationTimeout(30000);
+
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 20000 });
+    const pdf = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' },
     });
-    const serviceErr: Error & { statusCode?: number } = new Error(
-      'PDF generation is unavailable on the server. Ensure Chromium is installed and PUPPETEER_EXECUTABLE_PATH is configured if required.',
-    );
-    serviceErr.statusCode = 503;
-    throw serviceErr;
+    return Buffer.from(pdf);
+  } catch (err) {
+    logger.error('PDF rendering failed. Falling back to HTML document.', {
+      error: (err as Error).message,
+      stack: (err as Error).stack,
+      platform: process.platform,
+    });
+    throw new Error('PDF_RENDERING_UNAVAILABLE');
+  } finally {
+    if (browser) {
+      try { await browser.close(); } catch { /* browser already closed or crashed */ }
+    }
   }
+}
+
+/**
+ * Convert HTML to Buffer (fallback for when PDF rendering is unavailable).
+ * Returns the HTML as a UTF-8 encoded buffer for download.
+ */
+function htmlToHtmlBuffer(html: string): Buffer {
+  return Buffer.from(html, 'utf-8');
 }
 
 // ─── Attendance Slip ───────────────────────────────────────────────────────────
@@ -258,12 +266,30 @@ export function buildTestPaperHtml(
 
 export async function generateAttendanceSlipPdf(records: AttendanceRecord[]): Promise<Buffer> {
   logger.info(`Generating attendance slip for ${records.length} records`);
-  return htmlToPdf(buildAttendanceSlipHtml(records));
+  const html = buildAttendanceSlipHtml(records);
+  try {
+    return await htmlToPdf(html);
+  } catch (err) {
+    if ((err as Error).message === 'PDF_RENDERING_UNAVAILABLE') {
+      logger.warn('Falling back to HTML for attendance slip');
+      return htmlToHtmlBuffer(html);
+    }
+    throw err;
+  }
 }
 
 export async function generateMonthlyCardPdf(data: MonthlyAttendanceData): Promise<Buffer> {
   logger.info(`Generating monthly card for ${data.studentName}`);
-  return htmlToPdf(buildMonthlyCardHtml(data));
+  const html = buildMonthlyCardHtml(data);
+  try {
+    return await htmlToPdf(html);
+  } catch (err) {
+    if ((err as Error).message === 'PDF_RENDERING_UNAVAILABLE') {
+      logger.warn('Falling back to HTML for monthly card');
+      return htmlToHtmlBuffer(html);
+    }
+    throw err;
+  }
 }
 
 export async function generateTestPaperPdf(

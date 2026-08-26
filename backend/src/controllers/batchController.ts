@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { pool } from '../db';
 import { createError } from '../middleware/errorHandler';
+import { assertBatchAccess, scopedBatchIds } from '../utils/access';
 
 const batchSchema = z.object({
   grade:     z.enum(['IX', 'X', 'XI', 'XII']),
@@ -29,6 +30,19 @@ export async function createBatch(req: Request, res: Response, next: NextFunctio
 export async function getAllBatches(req: Request, res: Response, next: NextFunction) {
   try {
     const activeOnly = req.query.active !== 'false';
+    const allowed = await scopedBatchIds(req.user!);
+    const filters: string[] = [];
+    const params: number[][] = [];
+    if (activeOnly) filters.push('b.is_active = TRUE');
+    if (allowed) {
+      if (allowed.length === 0) {
+        res.json({ success: true, data: [] });
+        return;
+      }
+      filters.push('b.id = ANY($1::int[])');
+      params.push(allowed);
+    }
+    const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
     const result = await pool.query(
       `SELECT b.*,
               COUNT(DISTINCT s.id)::int AS student_count,
@@ -36,9 +50,10 @@ export async function getAllBatches(req: Request, res: Response, next: NextFunct
        FROM batches b
        LEFT JOIN students s ON s.batch_id = b.id AND s.status = 'active'
        LEFT JOIN teacher_batches tb ON tb.batch_id = b.id
-       ${activeOnly ? 'WHERE b.is_active = TRUE' : ''}
+       ${where}
        GROUP BY b.id
        ORDER BY b.grade, b.stream, b.name`,
+      params,
     );
     res.json({ success: true, data: result.rows });
   } catch (err) {
@@ -50,6 +65,7 @@ export async function getAllBatches(req: Request, res: Response, next: NextFunct
 export async function getBatchById(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
+    await assertBatchAccess(req.user!, Number(id));
     const batchRes = await pool.query(
       `SELECT b.*, COUNT(DISTINCT s.id)::int AS student_count
        FROM batches b
@@ -105,9 +121,12 @@ export async function updateBatch(req: Request, res: Response, next: NextFunctio
 export async function deleteBatch(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    const result = await pool.query('DELETE FROM batches WHERE id = $1 RETURNING id', [id]);
+    const result = await pool.query(
+      'UPDATE batches SET is_active = FALSE WHERE id = $1 RETURNING id',
+      [id],
+    );
     if (!result.rows.length) throw createError('Batch not found', 404);
-    res.json({ success: true, message: 'Batch deleted' });
+    res.json({ success: true, message: 'Batch deactivated' });
   } catch (err) {
     next(err);
   }
