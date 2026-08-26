@@ -17,15 +17,20 @@ function escapeHtml(value: unknown): string {
 async function htmlToPdf(html: string): Promise<Buffer> {
   // Try puppeteer first
   try {
-    // Dynamic require avoids TS type checking for optional dependency
+    // Use the bundled Chromium binary on Railway/Linux; use Puppeteer's local
+    // browser on Windows development machines.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const puppeteer = require('puppeteer') as any;
-    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    const puppeteer = (process.platform === 'linux'
+      ? require('puppeteer-core')
+      : require('puppeteer')) as any;
+    const chromium = process.platform === 'linux' ? require('@sparticuz/chromium') : undefined;
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH
+      ?? (chromium ? await chromium.executablePath() : undefined);
     const browser = await puppeteer.launch({
       headless: true,
       ...(executablePath ? { executablePath } : {}),
       timeout: 30000,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      args: chromium?.args ?? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
     try {
       const page = await browser.newPage();

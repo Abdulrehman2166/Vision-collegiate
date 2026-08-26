@@ -145,7 +145,11 @@ export async function generateAttendancePDF(req: Request, res: Response, next: N
       );
       if (!rows.rows.length) throw createError('No attendance records found for this date', 404);
 
-      pdfBuffer = await pdfService.generateAttendanceSlipPdf(rows.rows as pdfService.AttendanceRecord[]);
+      try {
+        pdfBuffer = await pdfService.generateAttendanceSlipPdf(rows.rows as pdfService.AttendanceRecord[]);
+      } catch (err) {
+        throw createError(`PDF rendering failed: ${(err as Error).message}`, 503);
+      }
       filePath  = `attendance/slips/${data.batchId}/${data.date}.pdf`;
 
     } else {
@@ -219,7 +223,12 @@ export async function generateAttendancePDF(req: Request, res: Response, next: N
       }
     }
 
-    const publicUrl = await storageService.uploadFile(pdfBuffer, filePath);
+    let publicUrl: string;
+    try {
+      publicUrl = await storageService.uploadFile(pdfBuffer, filePath);
+    } catch (err) {
+      throw createError(`PDF storage upload failed: ${(err as Error).message}`, 502);
+    }
     const downloadUrl = await storageService.resolveDownloadUrl(publicUrl, 3600);
     res.json({ success: true, data: { url: downloadUrl } });
   } catch (err) {
