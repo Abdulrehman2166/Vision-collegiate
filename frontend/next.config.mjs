@@ -31,7 +31,10 @@ const nextConfig = {
 
   // ── API proxy ──────────────────────────────────────────────────────────
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'https://web-production-7ab5f.up.railway.app';
+    const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '');
+    const apiUrl = configuredApiUrl?.includes('vision-collegiate-api.up.railway.app')
+      ? 'https://web-production-7ab5f.up.railway.app'
+      : (configuredApiUrl ?? 'https://web-production-7ab5f.up.railway.app');
     return [
       {
         source: '/api/v1/:path*',
