@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  KeyboardAvoidingView, Platform, Alert, TouchableOpacity,
+  KeyboardAvoidingView, Platform, Alert, TouchableOpacity, Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
@@ -61,7 +61,7 @@ export default function LoginScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoBox}>
-            <Ionicons name="school" size={36} color="#fff" />
+            <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
           </View>
           <Text style={styles.appName}>Vision Collegiate</Text>
           <Text style={styles.tagline}>Coaching Institute Management</Text>
@@ -135,6 +135,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 16,
   },
+  logo: { width: 64, height: 64 },
   appName:    { fontSize: 26, fontWeight: '700', color: '#fff', marginBottom: 4 },
   tagline:    { fontSize: 14, color: 'rgba(255,255,255,0.7)' },
   card: {
