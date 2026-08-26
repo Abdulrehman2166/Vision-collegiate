@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_URL =
-  process.env.BACKEND_URL || 'https://visioncollegiateapi-qidn8sah.b4a.run';
+  process.env.BACKEND_URL || 'https://visioncollegiateapi-f7szo38h.b4a.run';
 
 async function proxyRequest(request: NextRequest, path: string[]) {
   const backendPath = `/api/v1/${path.join('/')}`;
