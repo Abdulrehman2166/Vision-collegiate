@@ -254,9 +254,16 @@ async function tryUpload(buffer: Buffer, filePath: string): Promise<string | nul
 
 function sendBufferDirectly(res: Response, buffer: Buffer, filename: string) {
   const isHtml = filename.endsWith('.html');
-  res.setHeader('Content-Type', isHtml ? 'text/html; charset=utf-8' : 'application/pdf');
-  res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
-  res.send(buffer);
+  const mimeType = isHtml ? 'text/html' : 'application/pdf';
+  const dataUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
+  res.json({
+    success: true,
+    data: {
+      url: dataUrl,
+      format: isHtml ? 'html' : 'pdf',
+      note: isHtml ? 'PDF rendering unavailable; HTML document provided. You can print to PDF from your browser.' : undefined,
+    },
+  });
 }
 
 /** POST /api/v1/attendance/reports/send-whatsapp */
