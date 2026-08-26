@@ -20,6 +20,9 @@ dotenv.config();
 
 const app = express();
 
+// ─── Trust proxy (required for Back4App / reverse proxies) ────────────────────
+app.set('trust proxy', 1);
+
 // ─── Security & parsing ───────────────────────────────────────────────────────
 app.use(helmet());
 
@@ -29,9 +32,9 @@ const configuredOrigins = (process.env.CORS_ORIGIN ?? '')
   .map((o) => o.trim())
   .filter(Boolean);
 const allowedOrigins = [
+  'http://localhost:3000',
   'http://localhost:3001',
   'https://vision-collegiate.vercel.app',
-  'https://web-production-7ab5f.up.railway.app',
   ...configuredOrigins,
 ];
 
@@ -45,6 +48,8 @@ app.use(cors({
     callback(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // ─── WhatsApp webhook: capture raw body BEFORE json() parses it ───────────────
