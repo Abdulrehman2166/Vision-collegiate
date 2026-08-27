@@ -32,13 +32,12 @@ const nextConfig = {
   // â”€â”€ API proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // BACKEND_URL is read at build time so the container URL can be changed in
   // Vercel (Settings â†’ Environment Variables) without editing code.
-  const BACKEND_URL =
-    process.env.BACKEND_URL ?? 'https://visioncollegiateapi-443lzh7h.b4a.run';
+  const BACKEND = 'https://visioncollegiateapi-443lzh7h.b4a.run';
   async rewrites() {
     return [
       {
         source: '/api/v1/:path*',
-        destination: `${BACKEND_URL}/api/v1/:path*`,
+        destination: `${BACKEND}/api/v1/:path*`,
       },
     ];
   },
