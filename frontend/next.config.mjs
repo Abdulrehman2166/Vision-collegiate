@@ -1,4 +1,4 @@
-/** @type {import('next').NextConfig} */
+﻿/** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
@@ -7,19 +7,19 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
 
-  // ── Compiler optimisations ─────────────────────────────────────────────
+  // â”€â”€ Compiler optimisations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
 
-  // ── Image optimisation ─────────────────────────────────────────────────
+  // â”€â”€ Image optimisation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   images: {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 86400,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
   },
 
-  // ── Tree-shake large packages ──────────────────────────────────────────
+  // â”€â”€ Tree-shake large packages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   experimental: {
     optimizePackageImports: [
       'lucide-react',
@@ -29,11 +29,11 @@ const nextConfig = {
     ],
   },
 
-  // ── API proxy ──────────────────────────────────────────────────────────
+  // â”€â”€ API proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // BACKEND_URL is read at build time so the container URL can be changed in
-  // Vercel (Settings → Environment Variables) without editing code.
+  // Vercel (Settings â†’ Environment Variables) without editing code.
   const BACKEND_URL =
-    process.env.BACKEND_URL ?? 'https://visioncollegiateapi-tmvqzqhg.b4a.run';
+    process.env.BACKEND_URL ?? 'https://visioncollegiateapi-443lzh7h.b4a.run';
   async rewrites() {
     return [
       {
@@ -43,7 +43,7 @@ const nextConfig = {
     ];
   },
 
-  // ── Security + cache headers ───────────────────────────────────────────
+  // â”€â”€ Security + cache headers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async headers() {
     return [
       {

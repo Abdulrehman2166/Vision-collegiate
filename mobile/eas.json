@@ -1,4 +1,4 @@
-{
+﻿{
   "cli": {
     "version": ">= 12.0.0",
     "appVersionSource": "local"
@@ -8,7 +8,7 @@
       "android": {
         "buildType": "apk",
         "env": {
-          "EXPO_PUBLIC_API_URL": "https://visioncollegiateapi-tmvqzqhg.b4a.run"
+          "EXPO_PUBLIC_API_URL": "https://visioncollegiateapi-443lzh7h.b4a.run"
         }
       }
     },
@@ -16,7 +16,7 @@
       "android": {
         "buildType": "apk",
         "env": {
-          "EXPO_PUBLIC_API_URL": "https://visioncollegiateapi-tmvqzqhg.b4a.run"
+          "EXPO_PUBLIC_API_URL": "https://visioncollegiateapi-443lzh7h.b4a.run"
         }
       }
     }
