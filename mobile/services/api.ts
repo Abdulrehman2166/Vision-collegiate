@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://visioncollegiateapi-f7szo38h.b4a.run';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://visioncollegiateapi-67g7pl91.b4a.run';
 
 const api = axios.create({
   baseURL: `${BASE_URL}/api/v1`,

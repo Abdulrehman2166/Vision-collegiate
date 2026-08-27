@@ -8,7 +8,7 @@
       "android": {
         "buildType": "apk",
         "env": {
-          "EXPO_PUBLIC_API_URL": "https://visioncollegiateapi-f7szo38h.b4a.run"
+          "EXPO_PUBLIC_API_URL": "https://visioncollegiateapi-67g7pl91.b4a.run"
         }
       }
     },
@@ -16,7 +16,7 @@
       "android": {
         "buildType": "apk",
         "env": {
-          "EXPO_PUBLIC_API_URL": "https://visioncollegiateapi-f7szo38h.b4a.run"
+          "EXPO_PUBLIC_API_URL": "https://visioncollegiateapi-67g7pl91.b4a.run"
         }
       }
     }

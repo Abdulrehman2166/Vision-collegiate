@@ -34,7 +34,7 @@ const nextConfig = {
     return [
       {
         source: '/api/v1/:path*',
-        destination: 'https://visioncollegiateapi-f7szo38h.b4a.run/api/v1/:path*',
+        destination: 'https://visioncollegiateapi-67g7pl91.b4a.run/api/v1/:path*',
       },
     ];
   },
