@@ -30,11 +30,15 @@ const nextConfig = {
   },
 
   // ── API proxy ──────────────────────────────────────────────────────────
+  // BACKEND_URL is read at build time so the container URL can be changed in
+  // Vercel (Settings → Environment Variables) without editing code.
+  const BACKEND_URL =
+    process.env.BACKEND_URL ?? 'https://visioncollegiateapi-tmvqzqhg.b4a.run';
   async rewrites() {
     return [
       {
         source: '/api/v1/:path*',
-        destination: 'https://visioncollegiateapi-tmvqzqhg.b4a.run/api/v1/:path*',
+        destination: `${BACKEND_URL}/api/v1/:path*`,
       },
     ];
   },
