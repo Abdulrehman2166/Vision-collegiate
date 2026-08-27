@@ -17,6 +17,8 @@ services:
         value: 7d
       - key: STORAGE_BUCKET
         value: reports
+      - key: SELF_URL
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
