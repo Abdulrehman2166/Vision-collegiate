@@ -1,7 +1,7 @@
 ﻿import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://visioncollegiateapi-443lzh7h.b4a.run';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://vision-collegiate-api.vercel.app';
 
 const api = axios.create({
   baseURL: `${BASE_URL}/api/v1`,

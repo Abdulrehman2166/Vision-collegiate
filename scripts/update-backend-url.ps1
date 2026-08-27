@@ -30,8 +30,8 @@ if ($NewUrl -notmatch '^https?://') {
 
 Write-Host "--- Updating backend URL to: $NewUrl ---"
 
-# Regex that matches old Back4App container URLs (any hash)
-$pattern = 'https?://visioncollegiateapi-[a-z0-9]+\.b4a\.run'
+# Regex that matches old backend URLs (Back4App b4a.run or Vercel api)
+$pattern = 'https?://(visioncollegiateapi-[a-z0-9]+\.b4a\.run|vision-collegiate-api\.vercel\.app)'
 
 $files = @(
     'frontend\next.config.mjs',

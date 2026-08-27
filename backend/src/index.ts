@@ -98,11 +98,14 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-// ─── Start ────────────────────────────────────────────────────────────────────
-const PORT = parseInt(process.env.PORT ?? '3000', 10);
-app.listen(PORT, () => {
-  logger.info(`Vision Collegiate API running on port ${PORT} [${process.env.NODE_ENV ?? 'development'}]`);
-  startScheduler();
-});
+// ─── Start (only when run directly, not on Vercel serverless) ────────────────
+// On Vercel the app is imported by api/index.ts and managed as a function.
+if (process.env.VERCEL !== '1') {
+  const PORT = parseInt(process.env.PORT ?? '3000', 10);
+  app.listen(PORT, () => {
+    logger.info(`Vision Collegiate API running on port ${PORT} [${process.env.NODE_ENV ?? 'development'}]`);
+    startScheduler();
+  });
+}
 
 export default app;

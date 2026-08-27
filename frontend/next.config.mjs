@@ -1,5 +1,5 @@
 ﻿/** @type {import('next').NextConfig} */
-const BACKEND = 'https://visioncollegiateapi-443lzh7h.b4a.run';
+const BACKEND = 'https://vision-collegiate-api.vercel.app';
 const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,

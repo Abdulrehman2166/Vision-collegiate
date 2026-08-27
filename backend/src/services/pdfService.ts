@@ -313,5 +313,14 @@ export async function generateTestPaperPdf(
   includeAnswers: boolean,
 ): Promise<Buffer> {
   logger.info(`Generating test paper: ${meta.title}, answers=${includeAnswers}`);
-  return htmlToPdf(buildTestPaperHtml(meta, questions, includeAnswers));
+  const html = buildTestPaperHtml(meta, questions, includeAnswers);
+  try {
+    return await htmlToPdf(html);
+  } catch (err) {
+    if ((err as Error).message === 'PDF_RENDERING_UNAVAILABLE') {
+      logger.warn('Falling back to HTML for test paper');
+      return htmlToHtmlBuffer(html);
+    }
+    throw err;
+  }
 }
