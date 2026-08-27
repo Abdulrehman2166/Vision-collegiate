@@ -4,23 +4,24 @@ import path from 'path';
 
 const logDir = path.join(__dirname, '../../logs');
 
-export const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL ?? 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.errors({ stack: true }),
-    winston.format.json(),
-  ),
-  transports: [
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.printf(({ timestamp, level, message, ...meta }) => {
-          const extras = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
-          return `${timestamp} [${level}]: ${message}${extras}`;
-        }),
-      ),
-    }),
+// Vercel serverless has a read-only filesystem (only /tmp is writable),
+// so file-based logging is disabled there — console only.
+const isVercel = process.env.VERCEL === '1';
+
+const transports: winston.transport[] = [
+  new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.printf(({ timestamp, level, message, ...meta }) => {
+        const extras = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
+        return `${timestamp} [${level}]: ${message}${extras}`;
+      }),
+    ),
+  }),
+];
+
+if (!isVercel) {
+  transports.push(
     new DailyRotateFile({
       dirname: logDir,
       filename: 'app-%DATE%.log',
@@ -28,5 +29,15 @@ export const logger = winston.createLogger({
       maxFiles: '14d',
       zippedArchive: true,
     }),
-  ],
+  );
+}
+
+export const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL ?? 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json(),
+  ),
+  transports,
 });
