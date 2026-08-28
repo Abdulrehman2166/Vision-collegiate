@@ -18,6 +18,7 @@ interface GridRow {
   studentName: string;
   rollNumber:  string;
   status:      Status;
+  batchName?:  string | null;
 }
 
 const STATUS_CYCLE: Status[] = ['present', 'absent', 'late', 'holiday'];
@@ -31,7 +32,7 @@ const STATUS_CONFIG: Record<Status, { label: string; bg: string; textColor: stri
 
 export default function AttendanceScreen() {
   const [batches,    setBatches]    = useState<Batch[]>([]);
-  const [batchId,    setBatchId]    = useState<number | null>(null);
+  const [batchId,    setBatchId]    = useState<number | 'all' | null>(null);
   const [date,       setDate]       = useState(format(new Date(), 'yyyy-MM-dd'));
   const [grid,       setGrid]       = useState<GridRow[]>([]);
   const [loading,    setLoading]    = useState(false);
@@ -42,21 +43,20 @@ export default function AttendanceScreen() {
     api.get<ApiResponse<Batch[]>>('/batches?active=false')
       .then((r) => {
         setBatches(r.data.data);
-        if (r.data.data.length) setBatchId(r.data.data[0].id);
       })
       .catch(() => {});
   }, []);
 
   const loadGrid = useCallback(async (isRefresh = false) => {
-    if (!batchId) return;
+    const isAll = !batchId || batchId === 'all';
     if (isRefresh) setRefresh(true); else setLoading(true);
     try {
       const [studRes, attRes] = await Promise.all([
-        api.get<ApiResponse<{ id: number; name: string; roll_number: string }[]>>(
-          `/students?batchId=${batchId}&limit=200`,
+        api.get<ApiResponse<{ id: number; name: string; roll_number: string; batch_name: string | null }[]>>(
+          isAll ? `/students?limit=200&status=active` : `/students?batchId=${batchId}&limit=200&status=active`,
         ),
         api.get<ApiResponse<{ student_id: number; status: Status }[]>>(
-          `/attendance/batch/${batchId}?date=${date}`,
+          isAll ? `/attendance/all?date=${date}` : `/attendance/batch/${batchId}?date=${date}`,
         ),
       ]);
       const attMap = new Map(attRes.data.data.map((a) => [a.student_id, a.status]));
@@ -65,6 +65,7 @@ export default function AttendanceScreen() {
         studentName: s.name,
         rollNumber:  s.roll_number ?? '—',
         status:      attMap.get(s.id) ?? 'present',
+        batchName:   s.batch_name,
       })));
     } catch { Alert.alert('Error', 'Failed to load attendance data'); }
     finally { setLoading(false); setRefresh(false); }
@@ -86,11 +87,12 @@ export default function AttendanceScreen() {
   }
 
   async function saveAttendance() {
-    if (!batchId || !grid.length) return;
+    if (!grid.length) return;
     setSaving(true);
     try {
+      const isAll = !batchId || batchId === 'all';
       await api.post('/attendance/mark', {
-        batchId,
+        ...(isAll ? {} : { batchId }),
         date,
         records: grid.map((r) => ({ studentId: r.studentId, status: r.status })),
       });
@@ -112,6 +114,15 @@ export default function AttendanceScreen() {
         {/* Batch selector */}
         <Text style={styles.sectionLabel}>Select Batch</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.batchScroll}>
+          <TouchableOpacity
+            onPress={() => setBatchId('all')}
+            style={[styles.batchChip, batchId === 'all' && styles.batchChipActive]}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.batchChipText, batchId === 'all' && styles.batchChipTextActive]}>
+              All Students
+            </Text>
+          </TouchableOpacity>
           {batches.map((b) => (
             <TouchableOpacity
               key={b.id}
@@ -177,7 +188,7 @@ export default function AttendanceScreen() {
           <Text style={styles.emptyText}>Loading students…</Text>
         ) : grid.length === 0 ? (
           <Text style={styles.emptyText}>
-            {batches.length === 0 ? 'No batches found.' : 'No students in this batch.'}
+            {batches.length === 0 ? 'No batches found.' : 'No active students found.'}
           </Text>
         ) : (
           /* Student grid */
@@ -199,7 +210,7 @@ export default function AttendanceScreen() {
                       {row.studentName}
                     </Text>
                     <Text style={[styles.rollNum, { color: cfg.textColor, opacity: 0.7 }]}>
-                      {row.rollNumber}
+                      {(!batchId || batchId === 'all') && row.batchName ? `${row.batchName} · ${row.rollNumber}` : row.rollNumber}
                     </Text>
                   </View>
                   <Ionicons

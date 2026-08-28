@@ -18,6 +18,7 @@ interface GridRow {
   status:      Status;
   parentPhone: string | null;
   parentName:  string | null;
+  batchName?:  string | null;
 }
 
 const statusConfig: Record<Status, { label: string; icon: React.ReactNode; cls: string }> = {
@@ -49,15 +50,16 @@ export default function AttendancePage() {
   }, []);
 
   const fetchGrid = useCallback(async () => {
-    if (!batchId || !date) return;
+    if (!date) return;
     setLoading(true);
     setPdfContent('');
     try {
+      const isAll = !batchId || batchId === 'all';
       const studRes = await api.get<ApiResponse<Student[]>>(
-        `/students?batchId=${batchId}&limit=200`,
+        isAll ? `/students?limit=200&status=active` : `/students?batchId=${batchId}&limit=200&status=active`,
       );
       const attRes = await api.get<ApiResponse<AttendanceRecord[]>>(
-        `/attendance/batch/${batchId}?date=${date}`,
+        isAll ? `/attendance/all?date=${date}` : `/attendance/batch/${batchId}?date=${date}`,
       );
       setExisting(attRes.data.data);
 
@@ -71,6 +73,7 @@ export default function AttendancePage() {
           status:      attMap.get(s.id) ?? 'present',
           parentPhone: s.parent_phone ?? null,
           parentName:  s.parent_name ?? null,
+          batchName:   s.batch_name,
         })),
       );
     } catch { toast.error('Failed to load attendance data'); }
@@ -96,8 +99,9 @@ export default function AttendancePage() {
     if (!grid.length) return;
     setSubmitting(true);
     try {
+      const isAll = !batchId || batchId === 'all';
       await api.post('/attendance/mark', {
-        batchId:  parseInt(batchId),
+        ...(isAll ? {} : { batchId: parseInt(batchId) }),
         date,
         records:  grid.map((r) => ({ studentId: r.studentId, status: r.status })),
       });
@@ -170,7 +174,8 @@ export default function AttendancePage() {
         <div>
           <label className="label">Batch</label>
           <select className="select w-52" value={batchId} onChange={(e) => setBatchId(e.target.value)}>
-            {batches.map((b) => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
+            <option value="">All Students</option>
+            {batches.map((b) => <option key={b.id} value={String(b.id)}>{b.name} — Grade {b.grade}</option>)}
           </select>
         </div>
         <div>
@@ -209,7 +214,7 @@ export default function AttendancePage() {
       {/* Attendance grid */}
       {loading ? <SectionLoader /> : grid.length === 0 ? (
         <div className="card p-10 text-center text-slate-400">
-          {batches.length === 0 ? 'No batches found. Create a batch first.' : 'No students in this batch.'}
+          {batches.length === 0 ? 'No batches found. Create a batch first.' : 'No active students found.'}
         </div>
       ) : (
         <>
@@ -241,7 +246,9 @@ export default function AttendancePage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{row.studentName}</p>
-                    <p className="text-xs opacity-70">{row.rollNumber}</p>
+                    <p className="text-xs opacity-70">
+                      {(!batchId || batchId === 'all') && row.batchName ? `${row.batchName} · ` : ''}{row.rollNumber}
+                    </p>
                   </div>
                 </button>
               );

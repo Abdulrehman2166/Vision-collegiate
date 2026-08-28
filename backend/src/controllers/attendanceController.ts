@@ -8,7 +8,7 @@ import * as whatsappService from '../services/whatsappService';
 import { assertBatchAccess, assertStudentAccess } from '../utils/access';
 
 const markSchema = z.object({
-  batchId: z.number().int().positive(),
+  batchId: z.number().int().positive().optional(),
   date:    z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   records: z.array(
     z.object({
@@ -25,15 +25,30 @@ export async function markBatchAttendance(req: Request, res: Response, next: Nex
   try {
     const data = markSchema.parse(req.body);
     const markedBy = req.user!.id;
-    await assertBatchAccess(req.user!, data.batchId);
-
     const ids = data.records.map((r) => r.studentId);
-    const belong = await pool.query(
-      `SELECT id FROM students WHERE batch_id = $1 AND id = ANY($2::int[])`,
-      [data.batchId, ids],
+
+    // Resolve batchId per student when "all students" is used (batchId omitted)
+    if (data.batchId) {
+      await assertBatchAccess(req.user!, data.batchId);
+      const belong = await pool.query(
+        `SELECT id FROM students WHERE batch_id = $1 AND id = ANY($2::int[])`,
+        [data.batchId, ids],
+      );
+      if (belong.rows.length !== ids.length) {
+        throw createError('One or more students do not belong to this batch', 400);
+      }
+    }
+
+    const studentBatches = await pool.query(
+      `SELECT id, batch_id FROM students WHERE id = ANY($1::int[])`,
+      [ids],
     );
-    if (belong.rows.length !== ids.length) {
-      throw createError('One or more students do not belong to this batch', 400);
+    if (studentBatches.rows.length !== ids.length) {
+      throw createError('One or more students do not exist', 400);
+    }
+    const noBatch = studentBatches.rows.filter((row) => row.batch_id == null);
+    if (noBatch.length && !data.batchId) {
+      throw createError('One or more students have no batch assigned', 400);
     }
 
     await client.query('BEGIN');
@@ -41,6 +56,8 @@ export async function markBatchAttendance(req: Request, res: Response, next: Nex
     // Upsert each record within a transaction
     const inserted: unknown[] = [];
     for (const rec of data.records) {
+      const row = studentBatches.rows.find((r) => r.id === rec.studentId)!;
+      const batchForRecord = data.batchId ?? row.batch_id;
       const r = await client.query(
         `INSERT INTO attendance (student_id, batch_id, date, status, marked_by, note)
          VALUES ($1,$2,$3,$4,$5,$6)
@@ -48,7 +65,7 @@ export async function markBatchAttendance(req: Request, res: Response, next: Nex
          DO UPDATE SET status = EXCLUDED.status, marked_by = EXCLUDED.marked_by,
                        note = EXCLUDED.note
          RETURNING *`,
-        [rec.studentId, data.batchId, data.date, rec.status, markedBy, rec.note ?? null],
+        [rec.studentId, batchForRecord, data.date, rec.status, markedBy, rec.note ?? null],
       );
       inserted.push(r.rows[0]);
     }
@@ -88,6 +105,29 @@ export async function getBatchAttendanceByDate(req: Request, res: Response, next
   }
 }
 
+/** GET /api/v1/attendance/all  ?date=YYYY-MM-DD  – attendance for all students/batches on a date */
+export async function getAttendanceByDate(req: Request, res: Response, next: NextFunction) {
+  try {
+    const date = req.query.date as string;
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw createError('Query param `date` (YYYY-MM-DD) is required', 400);
+    }
+
+    const result = await pool.query(
+      `SELECT a.*, s.name AS student_name, s.roll_number, b.id AS batch_id, b.name AS batch_name
+       FROM attendance a
+       JOIN students s ON s.id = a.student_id
+       LEFT JOIN batches b ON b.id = a.batch_id
+       WHERE a.date = $1
+       ORDER BY s.roll_number, s.name`,
+      [date],
+    );
+
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    next(err);
+  }
+}
 /** GET /api/v1/attendance/student/:studentId  ?from=&to= */
 export async function getStudentAttendance(req: Request, res: Response, next: NextFunction) {
   try {
