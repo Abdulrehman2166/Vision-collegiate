@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS teacher_batches (
 CREATE TABLE IF NOT EXISTS students (
   id              SERIAL PRIMARY KEY,
   user_id         INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  parent_user_id  INTEGER REFERENCES users(id) ON DELETE SET NULL,
   roll_number     TEXT        UNIQUE,
   name            TEXT        NOT NULL,
   grade           VARCHAR(4)  NOT NULL,
