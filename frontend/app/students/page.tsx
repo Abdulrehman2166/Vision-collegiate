@@ -45,6 +45,8 @@ export default function StudentsPage() {
   const [modalOpen,   setModalOpen]   = useState(false);
   const [editStudent, setEditStudent] = useState<Student | null>(null);
   const [submitting,  setSubmitting]  = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
+  const [deleting,    setDeleting]    = useState(false);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -122,12 +124,19 @@ export default function StudentsPage() {
   }
 
   async function handleDelete(s: Student) {
-    if (!confirm(`Delete ${s.name}? This cannot be undone.`)) return;
+    setDeleteTarget(s);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await api.delete(`/students/${s.id}`);
+      await api.delete(`/students/${deleteTarget.id}`);
       toast.success('Student deleted');
+      setDeleteTarget(null);
       fetchStudents();
     } catch { toast.error('Delete failed'); }
+    finally { setDeleting(false); }
   }
 
   const columns = [
@@ -262,6 +271,22 @@ export default function StudentsPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete confirmation */}
+      <Modal open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)}
+             title="Delete student">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Delete <span className="font-semibold">"{deleteTarget?.name}"</span>? This cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={() => setDeleteTarget(null)} className="btn-secondary" disabled={deleting}>Cancel</button>
+            <button type="button" onClick={confirmDelete} disabled={deleting} className="btn-danger">
+              {deleting ? 'Deleting…' : 'Delete'}
+            </button>
+          </div>
+        </div>
       </Modal>
     </AppShell>
   );
