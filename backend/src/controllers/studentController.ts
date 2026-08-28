@@ -108,7 +108,7 @@ export async function getAllStudents(req: Request, res: Response, next: NextFunc
        FROM students s
        LEFT JOIN batches b ON b.id = s.batch_id
        ${where}
-       ORDER BY (NULLIF(regexp_replace(s.roll_number, '\D', '', 'g'), '')::numeric) NULLS LAST, s.roll_number, s.name ASC
+       ORDER BY (NULLIF(regexp_replace(s.roll_number, '[^0-9]', '', 'g'), '')::numeric) NULLS LAST, s.roll_number, s.name ASC
        LIMIT $${p} OFFSET $${p + 1}`,
       params,
     );
