@@ -100,12 +100,17 @@ export default function AttendancePage() {
     setSubmitting(true);
     try {
       const isAll = !batchId || batchId === 'all';
-      await api.post('/attendance/mark', {
+      const res = await api.post<ApiResponse<{ count: number; skipped?: number }>>('/attendance/mark', {
         ...(isAll ? {} : { batchId: parseInt(batchId) }),
         date,
         records:  grid.map((r) => ({ studentId: r.studentId, status: r.status })),
       });
-      toast.success(`Attendance saved for ${grid.length} students`);
+      const skipped = res.data.data?.skipped ?? 0;
+      toast.success(
+        skipped > 0
+          ? `Saved for ${res.data.data?.count} students (${skipped} skipped – no batch)`
+          : `Attendance saved for ${grid.length} students`,
+      );
       fetchGrid();
     } catch { toast.error('Failed to save attendance'); }
     finally  { setSubmitting(false); }

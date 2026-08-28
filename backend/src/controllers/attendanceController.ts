@@ -46,18 +46,19 @@ export async function markBatchAttendance(req: Request, res: Response, next: Nex
     if (studentBatches.rows.length !== ids.length) {
       throw createError('One or more students do not exist', 400);
     }
-    const noBatch = studentBatches.rows.filter((row) => row.batch_id == null);
-    if (noBatch.length && !data.batchId) {
-      throw createError('One or more students have no batch assigned', 400);
-    }
 
     await client.query('BEGIN');
 
     // Upsert each record within a transaction
     const inserted: unknown[] = [];
+    let skipped = 0;
     for (const rec of data.records) {
       const row = studentBatches.rows.find((r) => r.id === rec.studentId)!;
       const batchForRecord = data.batchId ?? row.batch_id;
+      if (batchForRecord == null) {
+        skipped++;
+        continue;
+      }
       const r = await client.query(
         `INSERT INTO attendance (student_id, batch_id, date, status, marked_by, note)
          VALUES ($1,$2,$3,$4,$5,$6)
@@ -71,7 +72,7 @@ export async function markBatchAttendance(req: Request, res: Response, next: Nex
     }
 
     await client.query('COMMIT');
-    res.status(201).json({ success: true, data: inserted, count: inserted.length });
+    res.status(201).json({ success: true, data: inserted, count: inserted.length, skipped });
   } catch (err) {
     await client.query('ROLLBACK');
     next(err);
