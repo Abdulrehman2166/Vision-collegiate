@@ -23,6 +23,9 @@ const studentSchema = z.object({
 export async function createStudent(req: Request, res: Response, next: NextFunction) {
   try {
     const data = studentSchema.parse(req.body);
+    for (const key of Object.keys(data)) {
+      if ((data as Record<string, unknown>)[key] === '') (data as Record<string, unknown>)[key] = null;
+    }
 
     // Check roll number uniqueness if provided
     if (data.roll_number) {
@@ -162,8 +165,11 @@ export async function getStudentById(req: Request, res: Response, next: NextFunc
 /** PUT /api/v1/students/:id */
 export async function updateStudent(req: Request, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
+    const id = req.params.id;
     const data = studentSchema.partial().parse(req.body);
+    for (const key of Object.keys(data)) {
+      if ((data as Record<string, unknown>)[key] === '') (data as Record<string, unknown>)[key] = null;
+    }
 
     const existing = await pool.query('SELECT id, batch_id FROM students WHERE id = $1', [id]);
     if (!existing.rows.length) throw createError('Student not found', 404);
