@@ -20,7 +20,7 @@ const questionSchema = z.object({
 const testSchema = z.object({
   title:          z.string().min(2),
   subject:        z.string().min(1),
-  grade:          z.enum(['IX', 'X', 'XI', 'XII']),
+  grade:          z.enum(['Juniors', 'IX', 'X', 'XI', 'XII']),
   stream:         z.string().optional().nullable(),
   batch_id:       z.number().int().positive().optional().nullable(),
   total_marks:    z.number().int().positive().default(100),

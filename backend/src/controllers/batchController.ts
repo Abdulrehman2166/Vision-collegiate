@@ -5,7 +5,7 @@ import { createError } from '../middleware/errorHandler';
 import { assertBatchAccess, scopedBatchIds } from '../utils/access';
 
 const batchSchema = z.object({
-  grade:     z.enum(['IX', 'X', 'XI', 'XII']),
+  grade:     z.enum(['Juniors', 'IX', 'X', 'XI', 'XII']),
   stream:    z.string().optional().nullable(),
   name:      z.string().min(1),
   is_active: z.boolean().optional(),

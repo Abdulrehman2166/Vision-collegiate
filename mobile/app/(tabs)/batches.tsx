@@ -14,13 +14,13 @@ import { Colors } from '@/constants/Colors';
 
 interface BatchForm {
   name: string;
-  grade: 'IX' | 'X' | 'XI' | 'XII';
+  grade: 'Juniors' | 'IX' | 'X' | 'XI' | 'XII';
   stream: string;
   is_active: boolean;
 }
+const EMPTY: BatchForm = { name: '', grade: 'Juniors', stream: '', is_active: true };
 
-const EMPTY: BatchForm = { name: '', grade: 'IX', stream: '', is_active: true };
-const GRADES = ['IX', 'X', 'XI', 'XII'] as const;
+const GRADES = ['Juniors', 'IX', 'X', 'XI', 'XII'] as const;
 
 export default function BatchesScreen() {
   const [batches,   setBatches]   = useState<Batch[]>([]);
@@ -106,7 +106,7 @@ export default function BatchesScreen() {
   }
 
   // Group by grade
-  const gradeOrder = ['IX', 'X', 'XI', 'XII'];
+  const gradeOrder = ['Juniors', 'IX', 'X', 'XI', 'XII'];
   const grouped = gradeOrder
     .map((g) => ({ grade: g, items: batches.filter((b) => b.grade === g) }))
     .filter((g) => g.items.length > 0);

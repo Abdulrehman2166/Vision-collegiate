@@ -17,7 +17,7 @@ import { Colors } from '@/constants/Colors';
 // ─── Form state ───────────────────────────────────────────────────────────────
 interface StudentForm {
   name: string;
-  grade: 'IX' | 'X' | 'XI' | 'XII';
+  grade: 'Juniors' | 'IX' | 'X' | 'XI' | 'XII';
   stream: string;
   batch_id: string;
   roll_number: string;
@@ -28,12 +28,12 @@ interface StudentForm {
 }
 
 const EMPTY_FORM: StudentForm = {
-  name: '', grade: 'IX', stream: '', batch_id: '',
+  name: '', grade: 'Juniors', stream: '', batch_id: '',
   roll_number: '', parent_name: '', parent_phone: '',
   parent_email: '', address: '',
 };
 
-const GRADES = ['IX', 'X', 'XI', 'XII'] as const;
+const GRADES = ['Juniors', 'IX', 'X', 'XI', 'XII'] as const;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function StudentsScreen() {

@@ -26,7 +26,7 @@ const questionSchema = z.object({
 const testSchema = z.object({
   title:         z.string().min(2, 'Title is required'),
   subject:       z.string().min(1, 'Subject is required'),
-  grade:         z.enum(['IX','X','XI','XII']),
+  grade:         z.enum(['Juniors','IX','X','XI','XII']),
   stream:        z.string().optional(),
   batch_id:      z.string().optional(),
   total_marks:   z.coerce.number().int().positive().default(100),
@@ -56,7 +56,7 @@ export default function TestsPage() {
   } = useForm<FormData>({
     resolver: zodResolver(testSchema),
     defaultValues: {
-      grade: 'IX', total_marks: 100, duration_mins: 180,
+      grade: 'Juniors', total_marks: 100, duration_mins: 180,
       questions: [{ question: '', marks: 1, question_type: 'subjective', order_index: 0 }],
     },
   });
@@ -201,7 +201,7 @@ export default function TestsPage() {
                 <div>
                   <label className="label">Grade *</label>
                   <select className="select" {...register('grade')}>
-                    {['IX','X','XI','XII'].map((g) => <option key={g} value={g}>{g}</option>)}
+                    {['Juniors','IX','X','XI','XII'].map((g) => <option key={g} value={g}>{g}</option>)}
                   </select>
                 </div>
                 <div>

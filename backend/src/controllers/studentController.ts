@@ -6,7 +6,7 @@ import { assertBatchAccess, assertStudentAccess, scopedBatchIds } from '../utils
 
 const studentSchema = z.object({
   name:          z.string().min(2),
-  grade:         z.enum(['IX', 'X', 'XI', 'XII']),
+  grade:         z.enum(['Juniors', 'IX', 'X', 'XI', 'XII']),
   stream:        z.string().optional().nullable(),
   batch_id:      z.number().int().positive().optional().nullable(),
   roll_number:   z.string().optional().nullable(),
@@ -108,7 +108,7 @@ export async function getAllStudents(req: Request, res: Response, next: NextFunc
        FROM students s
        LEFT JOIN batches b ON b.id = s.batch_id
        ${where}
-       ORDER BY s.name ASC
+       ORDER BY (NULLIF(regexp_replace(s.roll_number, '\D', '', 'g'), '')::numeric) NULLS LAST, s.roll_number, s.name ASC
        LIMIT $${p} OFFSET $${p + 1}`,
       params,
     );

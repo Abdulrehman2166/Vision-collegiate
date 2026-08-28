@@ -14,7 +14,7 @@ import { hasRole } from '@/utils/auth';
 
 const schema = z.object({
   name:          z.string().min(2, 'Name is required'),
-  grade:         z.enum(['IX', 'X', 'XI', 'XII']),
+  grade:         z.enum(['Juniors', 'IX', 'X', 'XI', 'XII']),
   stream:        z.string().optional(),
   batch_id:      z.string().optional(),
   roll_number:   z.string().optional(),
@@ -197,7 +197,7 @@ export default function StudentsPage() {
         </div>
         <select className="select w-36" value={fGrade} onChange={(e) => { setFGrade(e.target.value); setPage(1); }}>
           <option value="">All grades</option>
-          {['IX','X','XI','XII'].map((g) => <option key={g} value={g}>{g}</option>)}
+          {['Juniors','IX','X','XI','XII'].map((g) => <option key={g} value={g}>{g}</option>)}
         </select>
         <select className="select w-44" value={fBatch} onChange={(e) => { setFBatch(e.target.value); setPage(1); }}>
           <option value="">All batches</option>
@@ -223,7 +223,7 @@ export default function StudentsPage() {
             <div>
               <label className="label">Grade *</label>
               <select className="select" {...register('grade')}>
-                {['IX','X','XI','XII'].map((g) => <option key={g} value={g}>{g}</option>)}
+                {['Juniors','IX','X','XI','XII'].map((g) => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
             <div>

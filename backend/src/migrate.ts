@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS batches (
   id           SERIAL PRIMARY KEY,
-  grade        VARCHAR(4)  NOT NULL,           -- IX, X, XI, XII
+  grade        VARCHAR(12) NOT NULL,           -- Juniors, IX, X, XI, XII
   stream       VARCHAR(50),                    -- Science, Commerce, Arts, NULL for IX-X
   name         TEXT        NOT NULL,           -- e.g. "Batch A – Science XI"
   is_active    BOOLEAN     NOT NULL DEFAULT TRUE,
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS students (
   parent_user_id  INTEGER REFERENCES users(id) ON DELETE SET NULL,
   roll_number     TEXT        UNIQUE,
   name            TEXT        NOT NULL,
-  grade           VARCHAR(4)  NOT NULL,
+  grade           VARCHAR(12) NOT NULL,
   stream          VARCHAR(50),
   batch_id        INTEGER REFERENCES batches(id) ON DELETE SET NULL,
   parent_name     TEXT,
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS tests (
   id              SERIAL PRIMARY KEY,
   title           TEXT        NOT NULL,
   subject         TEXT        NOT NULL,
-  grade           VARCHAR(4)  NOT NULL,
+  grade           VARCHAR(12) NOT NULL,
   stream          VARCHAR(50),
   batch_id        INTEGER REFERENCES batches(id) ON DELETE SET NULL,
   total_marks     INTEGER     NOT NULL DEFAULT 100,

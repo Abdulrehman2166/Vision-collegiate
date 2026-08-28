@@ -14,7 +14,7 @@ import api, { type ApiResponse, type Batch } from '@/utils/api';
 import { hasRole } from '@/utils/auth';
 
 const schema = z.object({
-  grade:    z.enum(['IX', 'X', 'XI', 'XII']),
+  grade:    z.enum(['Juniors', 'IX', 'X', 'XI', 'XII']),
   stream:   z.string().optional(),
   name:     z.string().min(1, 'Name is required'),
   is_active: z.boolean().optional(),
@@ -48,7 +48,7 @@ export default function BatchesPage() {
 
   function openCreate() {
     setEditBatch(null);
-    reset({ grade: 'IX', stream: '', name: '', is_active: true });
+    reset({ grade: 'Juniors', stream: '', name: '', is_active: true });
     setModalOpen(true);
   }
 
@@ -95,7 +95,7 @@ export default function BatchesPage() {
   }
 
   // Group by grade
-  const gradeGroups = ['IX','X','XI','XII'].map((g) => ({
+  const gradeGroups = ['Juniors','IX','X','XI','XII'].map((g) => ({
     grade: g,
     batches: batches.filter((b) => b.grade === g),
   })).filter((g) => g.batches.length > 0);
@@ -165,7 +165,7 @@ export default function BatchesPage() {
           <div>
             <label className="label">Grade *</label>
             <select className="select" {...register('grade')}>
-              {['IX','X','XI','XII'].map((g) => <option key={g} value={g}>{g}</option>)}
+              {['Juniors','IX','X','XI','XII'].map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
           </div>
           <div>
