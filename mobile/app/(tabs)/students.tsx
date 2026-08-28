@@ -233,7 +233,7 @@ export default function StudentsScreen() {
             onPress={() => setFBatch(b.id)}
             style={[styles.chip, fBatch === b.id && styles.chipActive]}
           >
-            <Text style={[styles.chipText, fBatch === b.id && styles.chipTextActive]}>{b.name}</Text>
+            <Text style={[styles.chipText, fBatch === b.id && styles.chipTextActive]}>{b.id ? `${b.name} · Gr ${b.grade}` : b.name}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -409,7 +409,7 @@ export default function StudentsScreen() {
                   style={[styles.chip, form.batch_id === String(b.id) && styles.chipActive]}
                 >
                   <Text style={[styles.chipText, form.batch_id === String(b.id) && styles.chipTextActive]}>
-                    {b.name}
+                    {b.name} · Gr {b.grade}{b.stream ? ` (${b.stream})` : ''}
                   </Text>
                 </TouchableOpacity>
               ))}

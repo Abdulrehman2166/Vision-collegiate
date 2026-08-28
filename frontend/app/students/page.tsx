@@ -201,7 +201,7 @@ export default function StudentsPage() {
         </select>
         <select className="select w-44" value={fBatch} onChange={(e) => { setFBatch(e.target.value); setPage(1); }}>
           <option value="">All batches</option>
-          {batches.map((b) => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
+          {batches.map((b) => <option key={b.id} value={String(b.id)}>{b.name} — Grade {b.grade}{b.stream ? ` (${b.stream})` : ''}</option>)}
         </select>
       </div>
 
@@ -234,7 +234,7 @@ export default function StudentsPage() {
               <label className="label">Batch</label>
               <select className="select" {...register('batch_id')}>
                 <option value="">— Select batch —</option>
-                {batches.map((b) => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
+                {batches.map((b) => <option key={b.id} value={String(b.id)}>{b.name} — Grade {b.grade}{b.stream ? ` (${b.stream})` : ''}</option>)}
               </select>
             </div>
             <div>
