@@ -95,9 +95,22 @@ export async function generateTestPaper(req: Request, res: Response, next: NextF
       pdfService.generateTestPaperPdf(meta, questions, true),
     ]);
 
+    // PDF rendering may fall back to HTML on serverless hosts; upload with the
+    // correct extension + mime type so downloads render in the browser.
+    const studentIsHtml = studentPdf.toString('utf-8', 0, 15).includes('<!DOCTYPE');
+    const teacherIsHtml = teacherPdf.toString('utf-8', 0, 15).includes('<!DOCTYPE');
+
     const [studentUrl, teacherUrl] = await Promise.all([
-      storageService.uploadFile(studentPdf, `tests/${test.id}/student.pdf`),
-      storageService.uploadFile(teacherPdf, `tests/${test.id}/teacher.pdf`),
+      storageService.uploadFile(
+        studentPdf,
+        `tests/${test.id}/student.${studentIsHtml ? 'html' : 'pdf'}`,
+        studentIsHtml ? 'text/html' : 'application/pdf',
+      ),
+      storageService.uploadFile(
+        teacherPdf,
+        `tests/${test.id}/teacher.${teacherIsHtml ? 'html' : 'pdf'}`,
+        teacherIsHtml ? 'text/html' : 'application/pdf',
+      ),
     ]);
 
     // Save URLs back to test row

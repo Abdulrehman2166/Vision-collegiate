@@ -10,6 +10,16 @@ const SUPABASE_URL = (process.env.SUPABASE_URL ?? '').replace(/\/+$/, '');
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY ?? '';
 const BUCKET = process.env.STORAGE_BUCKET ?? 'reports';
 
+// New-format Supabase keys (sb_secret_*) are accepted via the `apikey` header,
+// while legacy JWT service-role keys (eyJ...) use `Authorization: Bearer`.
+// Send both so either key format works.
+function storageHeaders(): Record<string, string> {
+  return {
+    apikey: SUPABASE_SERVICE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+  };
+}
+
 function normalizeStoragePath(filePath: string): string {
   return filePath.trim().replace(/^\/+/, '');
 }
@@ -51,7 +61,7 @@ export async function resolveDownloadUrl(fileUrl: string, expiresInSeconds = 360
       { expiresIn: expiresInSeconds },
       {
         headers: {
-          Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+          ...storageHeaders(),
           'Content-Type': 'application/json',
         },
       },
@@ -85,7 +95,7 @@ export async function uploadFile(
 
   await axios.post(url, buffer, {
     headers: {
-      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+      ...storageHeaders(),
       'Content-Type': mimeType,
       'x-upsert': 'true',
     },
@@ -104,7 +114,7 @@ export async function deleteFile(filePath: string): Promise<void> {
   const normalizedPath = normalizeStoragePath(filePath);
   const url = `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${normalizedPath}`;
   await axios.delete(url, {
-    headers: { Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` },
+    headers: storageHeaders(),
   });
   logger.info(`Deleted file from storage: ${filePath}`);
 }
