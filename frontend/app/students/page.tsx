@@ -53,7 +53,7 @@ export default function StudentsPage() {
   const fetchStudents = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(page), limit: '20' });
+      const params = new URLSearchParams({ page: String(page), limit: '20', status: 'active' });
       if (search)  params.set('search',  search);
       if (fGrade)  params.set('grade',   fGrade);
       if (fBatch)  params.set('batchId', fBatch);
