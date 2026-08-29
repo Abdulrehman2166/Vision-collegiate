@@ -152,56 +152,6 @@ export async function getStudentAttendance(req: Request, res: Response, next: Ne
 
 // ─── PDF reports ───────────────────────────────────────────────────────────────
 
-/** GET /api/v1/attendance/debug/pdf — diagnostics for PDF rendering on the server. */
-export async function runPdfDebug(req: Request, res: Response, _next: NextFunction) {
-  const report: Record<string, unknown> = { platform: process.platform, node: process.version };
-  try {
-    try {
-      const puppeteer = require('puppeteer-core');
-      report.puppeteerCore = 'ok';
-    } catch (e) {
-      report.puppeteerCore = `MISSING: ${(e as Error).message}`;
-    }
-    try {
-      const sparticuz = require('@sparticuz/chromium');
-      report.sparticuz = `ok (keys: ${Object.keys(sparticuz).join(',')})`;
-    } catch (e) {
-      report.sparticuz = `MISSING: ${(e as Error).message}`;
-    }
-    try {
-      const { resolveChromiumExecutable } = require('../services/pdfService');
-      const p = await resolveChromiumExecutable();
-      report.executablePath = String(p);
-      if (p) report.executableExists = require('node:fs').existsSync(p);
-    } catch (e) {
-      report.executablePath = `ERROR: ${(e as Error).message}`;
-    }
-    try {
-      const puppeteer = require('puppeteer-core');
-      const sparticuz = require('@sparticuz/chromium');
-      const chromium = sparticuz.default ?? sparticuz;
-      const { resolveChromiumExecutable } = require('../services/pdfService');
-      const ep = await resolveChromiumExecutable();
-      const browser = await puppeteer.launch({
-        headless: process.platform === 'linux' ? 'shell' : true,
-        executablePath: ep,
-        timeout: 45000,
-        args: chromium.args ?? ['--no-sandbox', '--disable-dev-shm-usage'],
-      });
-      const page = await browser.newPage();
-      await page.setContent('<h1>hi</h1>', { waitUntil: 'load', timeout: 15000 });
-      const pdf = await page.pdf({ format: 'A4' });
-      report.launch = `OK pdf bytes=${pdf.length}`;
-      await browser.close();
-    } catch (e) {
-      report.launch = `FAILED: ${(e as Error).message}`;
-      report.launchStack = (e as Error).stack;
-    }
-  } catch (e) {
-    report.fatal = (e as Error).message;
-  }
-  res.json({ success: true, data: report });
-}
 /** POST /api/v1/attendance/reports/generate-pdf */
 export async function generateAttendancePDF(req: Request, res: Response, _next: NextFunction) {
   try {
