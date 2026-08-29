@@ -158,8 +158,8 @@ export async function generateAttendancePDF(req: Request, res: Response, _next: 
     const schema = z.object({
       type:    z.enum(['daily_slip', 'monthly_card']),
       batchId: z.number().int().positive(),
-      date:    z.string().optional(),   // for daily_slip
-      month:   z.string().optional(),   // "2025-01" for monthly_card
+      date:    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (expected YYYY-MM-DD)').optional(),   // for daily_slip
+      month:   z.string().regex(/^\d{4}-\d{2}$/, 'Invalid month format (expected YYYY-MM)').optional(),          // "2025-01" for monthly_card
       studentId: z.number().int().positive().optional(), // for monthly_card of a single student
     });
 
@@ -276,6 +276,13 @@ export async function generateAttendancePDF(req: Request, res: Response, _next: 
     return sendBufferDirectly(res, pdfBuffer, filePath.endsWith('.html') ? 'attendance.html' : 'attendance.pdf');
   } catch (error) {
     console.error('PDF Generation Backend Error:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(422).json({
+        success: false,
+        message: 'Validation failed',
+        errors:  error.errors.map((e) => ({ path: e.path.join('.'), message: e.message })),
+      });
+    }
     const statusCode = (error as any).statusCode ?? 500;
     const message = statusCode === 500 ? 'PDF generation failed' : (error as Error).message;
     res.status(statusCode).json({ success: false, message });

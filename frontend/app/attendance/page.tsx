@@ -124,6 +124,10 @@ export default function AttendancePage() {
   }
 
   async function generatePdf() {
+    if (!batchId || batchId === 'all') {
+      toast.error('Select a specific batch to generate the PDF slip');
+      return;
+    }
     try {
       const res = await api.post<ApiResponse<{ url: string }>>('/attendance/reports/generate-pdf', {
         type:    'daily_slip',
