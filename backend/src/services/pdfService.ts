@@ -1,7 +1,8 @@
 /**
  * pdfService – generates PDFs from HTML.
- * Uses Puppeteer when available (local dev), falls back to raw HTML buffer
- * in environments where Chromium cannot be installed (Render free tier).
+ * Uses Puppeteer (core) with the @sparticuz/chromium binary on serverless hosts
+ * (Vercel/AWS Lambda), and falls back to raw HTML buffer when Chromium is
+ * unavailable (some local setups).
  */
 import { logger } from '../utils/logger';
 
@@ -14,24 +15,52 @@ function escapeHtml(value: unknown): string {
     .replace(/'/g, '&#39;');
 }
 
+async function resolveChromiumExecutable(): Promise<string | undefined> {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+  if (process.platform === 'linux') {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const sparticuz = require('@sparticuz/chromium') as {
+      default?: { executablePath: () => Promise<string>; args?: string[] };
+      executablePath?: () => Promise<string>;
+      args?: string[];
+    };
+    const chromium = sparticuz.default ?? sparticuz;
+    if (chromium?.executablePath) {
+      return await chromium.executablePath();
+    }
+    return undefined;
+  }
+  const candidates = [
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium-browser',
+  ];
+  const { existsSync } = await import('node:fs');
+  return candidates.find((p) => existsSync(p));
+}
+
 async function htmlToPdf(html: string): Promise<Buffer> {
   // Try puppeteer first
   let browser: any = null;
   try {
-    // Use the bundled Chromium binary on Railway/Linux; use Puppeteer's local
-    // browser on Windows development machines.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const puppeteer = (process.platform === 'linux'
-      ? require('puppeteer-core')
-      : require('puppeteer')) as any;
-    const chromium = process.platform === 'linux' ? require('@sparticuz/chromium') : undefined;
-    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH
-      ?? (chromium ? await chromium.executablePath() : undefined);
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const puppeteer = require('puppeteer-core') as any;
+    const executablePath = await resolveChromiumExecutable();
+    if (!executablePath) {
+      throw new Error('No Chromium executable found');
+    }
     browser = await puppeteer.launch({
-      headless: true,
-      ...(executablePath ? { executablePath } : {}),
+      headless: process.platform === 'linux' ? 'shell' : true,
+      executablePath,
       timeout: 60000,
-      args: chromium?.args ?? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      args: process.platform === 'linux'
+        ? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--single-process']
+        : ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
 
     const page = await browser.newPage();
