@@ -176,6 +176,25 @@ export async function runPdfDebug(req: Request, res: Response, _next: NextFuncti
     } catch (e) {
       report.executablePath = `ERROR: ${(e as Error).message}`;
     }
+    try {
+      const puppeteer = require('puppeteer-core');
+      const sparticuz = require('@sparticuz/chromium');
+      const chromium = sparticuz.default ?? sparticuz;
+      const browser = await puppeteer.launch({
+        headless: process.platform === 'linux' ? 'shell' : true,
+        executablePath: '/tmp/chromium',
+        timeout: 45000,
+        args: chromium.args ?? ['--no-sandbox', '--disable-dev-shm-usage'],
+      });
+      const page = await browser.newPage();
+      await page.setContent('<h1>hi</h1>', { waitUntil: 'load', timeout: 15000 });
+      const pdf = await page.pdf({ format: 'A4' });
+      report.launch = `OK pdf bytes=${pdf.length}`;
+      await browser.close();
+    } catch (e) {
+      report.launch = `FAILED: ${(e as Error).message}`;
+      report.launchStack = (e as Error).stack;
+    }
   } catch (e) {
     report.fatal = (e as Error).message;
   }
