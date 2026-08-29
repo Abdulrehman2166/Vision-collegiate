@@ -180,9 +180,11 @@ export async function runPdfDebug(req: Request, res: Response, _next: NextFuncti
       const puppeteer = require('puppeteer-core');
       const sparticuz = require('@sparticuz/chromium');
       const chromium = sparticuz.default ?? sparticuz;
+      const { resolveChromiumExecutable } = require('../services/pdfService');
+      const ep = await resolveChromiumExecutable();
       const browser = await puppeteer.launch({
         headless: process.platform === 'linux' ? 'shell' : true,
-        executablePath: '/tmp/chromium',
+        executablePath: ep,
         timeout: 45000,
         args: chromium.args ?? ['--no-sandbox', '--disable-dev-shm-usage'],
       });

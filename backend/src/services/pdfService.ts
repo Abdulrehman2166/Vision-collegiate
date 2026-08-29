@@ -6,6 +6,24 @@
  */
 import { logger } from '../utils/logger';
 
+// On Vercel (and similar serverless hosts) the @sparticuz/chromium package only
+// extracts its bundled system libraries (libnss3.so, libnspr4.so, etc.) when it
+// detects an AWS Lambda Node runtime. Vercel doesn't set this env var, so we set
+// it BEFORE the module is imported (import-time env bootstrap happens above us).
+function bootstrapChromiumEnv() {
+  if (process.platform === 'linux' && (process.env.VERCEL || process.env.AWS_EXECUTION_ENV)) {
+    process.env.AWS_LAMBDA_JS_RUNTIME ??= 'nodejs22.x';
+    process.env.LD_LIBRARY_PATH = [
+      '/tmp/al2023/lib',
+      '/tmp/al2/lib',
+      process.env.LD_LIBRARY_PATH,
+    ]
+      .filter(Boolean)
+      .join(':');
+  }
+}
+bootstrapChromiumEnv();
+
 function escapeHtml(value: unknown): string {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -22,15 +40,17 @@ export async function resolveChromiumExecutable(): Promise<string | undefined> {
   if (process.platform === 'linux') {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const sparticuz = require('@sparticuz/chromium') as {
-      default?: { executablePath: () => Promise<string>; args?: string[] };
+      default?: { executablePath: () => Promise<string>; setGraphicsMode?: (v: boolean) => void };
       executablePath?: () => Promise<string>;
-      args?: string[];
+      setGraphicsMode?: (v: boolean) => void;
     };
-    const chromium = sparticuz.default ?? sparticuz;
-    if (chromium?.executablePath) {
-      return await chromium.executablePath();
-    }
-    return undefined;
+    const chromium = (sparticuz.default ?? sparticuz) as {
+      executablePath: () => Promise<string>;
+      setGraphicsMode?: (v: boolean) => void;
+    };
+    // Disable WebGL/graphics stack so the swiftshader libs aren't needed.
+    chromium.setGraphicsMode?.(false);
+    return await chromium.executablePath();
   }
   const candidates = [
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
