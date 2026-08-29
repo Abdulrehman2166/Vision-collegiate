@@ -124,14 +124,11 @@ export default function AttendancePage() {
   }
 
   async function generatePdf() {
-    if (!batchId || batchId === 'all') {
-      toast.error('Select a specific batch to generate the PDF slip');
-      return;
-    }
     try {
+      const isAll = !batchId || batchId === 'all';
       const res = await api.post<ApiResponse<{ url: string }>>('/attendance/reports/generate-pdf', {
         type:    'daily_slip',
-        batchId: parseInt(batchId),
+        ...(isAll ? {} : { batchId: parseInt(batchId) }),
         date,
       });
       const url = res.data.data.url;
@@ -277,7 +274,7 @@ export default function AttendancePage() {
               {submitting ? 'Saving…' : <><CheckCircle2 className="w-4 h-4" /> Save Attendance</>}
             </button>
             <button onClick={generatePdf} className="btn-secondary">
-              <FileDown className="w-4 h-4" /> Generate PDF Slip
+              <FileDown className="w-4 h-4" /> {(!batchId || batchId === 'all') ? 'Generate All Students PDF' : 'Generate PDF Slip'}
             </button>
             {pdfContent && (
               <button onClick={() => setShowPdfModal(true)} className="btn-secondary">

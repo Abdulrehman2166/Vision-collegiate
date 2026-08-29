@@ -5,7 +5,7 @@ import { createError } from '../middleware/errorHandler';
 import * as pdfService from '../services/pdfService';
 import * as storageService from '../services/storageService';
 import * as whatsappService from '../services/whatsappService';
-import { assertBatchAccess, assertStudentAccess } from '../utils/access';
+import { assertBatchAccess, assertStudentAccess, scopedBatchIds } from '../utils/access';
 
 const markSchema = z.object({
   batchId: z.number().int().positive().optional(),
@@ -157,14 +157,14 @@ export async function generateAttendancePDF(req: Request, res: Response, _next: 
   try {
     const schema = z.object({
       type:    z.enum(['daily_slip', 'monthly_card']),
-      batchId: z.number().int().positive(),
+      batchId: z.number().int().positive().optional(),            // omitted = all students (daily_slip)
       date:    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (expected YYYY-MM-DD)').optional(),   // for daily_slip
       month:   z.string().regex(/^\d{4}-\d{2}$/, 'Invalid month format (expected YYYY-MM)').optional(),          // "2025-01" for monthly_card
       studentId: z.number().int().positive().optional(), // for monthly_card of a single student
     });
 
     const data = schema.parse(req.body);
-    await assertBatchAccess(req.user!, data.batchId);
+    if (data.batchId) await assertBatchAccess(req.user!, data.batchId);
     if (data.studentId) await assertStudentAccess(req.user!, data.studentId);
 
     let pdfBuffer: Buffer;
@@ -173,28 +173,53 @@ export async function generateAttendancePDF(req: Request, res: Response, _next: 
     if (data.type === 'daily_slip') {
       if (!data.date) throw createError('`date` is required for daily_slip', 400);
 
-      const rows = await pool.query(
-        `SELECT s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber",
-                a.status, a.date::text AS date,
-                b.name AS "batchName"
-         FROM attendance a
-         JOIN students s ON s.id = a.student_id
-         JOIN batches  b ON b.id = a.batch_id
-         WHERE a.batch_id = $1 AND a.date = $2
-         ORDER BY s.roll_number, s.name`,
-        [data.batchId, data.date],
-      );
+      let rows;
+      if (data.batchId) {
+        const r = await pool.query(
+          `SELECT s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber",
+                  a.status, a.date::text AS date,
+                  b.name AS "batchName"
+           FROM attendance a
+           JOIN students s ON s.id = a.student_id
+           JOIN batches  b ON b.id = a.batch_id
+           WHERE a.batch_id = $1 AND a.date = $2
+           ORDER BY s.roll_number, s.name`,
+          [data.batchId, data.date],
+        );
+        rows = r;
+      } else {
+        // All-students slip – teachers are scoped to their assigned batches
+        const allowed = await scopedBatchIds(req.user!);
+        if (req.user!.role === 'teacher') {
+          if (!allowed?.length) throw createError('No batches assigned to you', 403);
+        }
+        const scope = allowed?.length ? 'AND a.batch_id = ANY($2::int[])' : '';
+        const params: unknown[] = allowed?.length ? [data.date, allowed] : [data.date];
+        const r = await pool.query(
+          `SELECT s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber",
+                  a.status, a.date::text AS date,
+                  b.name AS "batchName"
+           FROM attendance a
+           JOIN students s ON s.id = a.student_id
+           JOIN batches  b ON b.id = a.batch_id
+           WHERE a.date = $1 ${scope}
+           ORDER BY s.roll_number, s.name`,
+          params,
+        );
+        rows = r;
+      }
       if (!rows.rows.length) throw createError('No attendance records found for this date', 404);
 
       pdfBuffer = await pdfService.generateAttendanceSlipPdf(rows.rows as pdfService.AttendanceRecord[]);
       const isHtmlFallback = pdfBuffer.toString('utf-8', 0, 15).includes('<!DOCTYPE');
       filePath  = isHtmlFallback
-        ? `attendance/slips/${data.batchId}/${data.date}.html`
-        : `attendance/slips/${data.batchId}/${data.date}.pdf`;
+        ? `attendance/slips/${data.batchId ?? 'all'}/${data.date}.html`
+        : `attendance/slips/${data.batchId ?? 'all'}/${data.date}.pdf`;
 
     } else {
       // monthly_card
       if (!data.month) throw createError('`month` (YYYY-MM) is required for monthly_card', 400);
+      if (!data.batchId) throw createError('`batchId` is required for monthly_card', 400);
 
       const studentFilter = data.studentId ? 'AND s.id = $3' : '';
       const params: (string | number)[] = [data.batchId, `${data.month}%`];
