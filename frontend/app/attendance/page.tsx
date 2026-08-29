@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { CheckCircle2, XCircle, Clock, Send, FileDown, CalendarDays, X, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import api, { type ApiResponse, type Batch, type AttendanceRecord, type Student } from '@/utils/api';
+import { getWorkingDate } from '@/utils/dates';
 
 type Status = 'present' | 'absent' | 'late' | 'holiday';
 
@@ -39,6 +40,12 @@ export default function AttendancePage() {
   const [existing,     setExisting]   = useState<AttendanceRecord[]>([]);
   const [pdfContent,   setPdfContent] = useState('');
   const [showPdfModal, setShowPdfModal] = useState(false);
+
+  useEffect(() => {
+    getWorkingDate()
+      .then((d) => setDate(d))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     api.get<ApiResponse<Batch[]>>('/batches?active=true')

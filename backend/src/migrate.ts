@@ -141,6 +141,15 @@ CREATE TABLE IF NOT EXISTS whatsapp_logs (
 );
 
 -- ─────────────────────────────────────────────
+-- APP SETTINGS (key/value store, e.g. working_date)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS app_settings (
+  key        TEXT PRIMARY KEY,
+  value      TEXT,
+  updated_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+-- ─────────────────────────────────────────────
 -- HELPER: auto-update updated_at
 -- ─────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION trigger_set_timestamp()

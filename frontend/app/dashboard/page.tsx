@@ -21,6 +21,7 @@ import { getUser } from '@/utils/auth';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { getWorkingDate, getRealToday } from '@/utils/dates';
 
 const QUICK_ACTIONS = [
   { label: 'Mark Attendance', icon: CalendarCheck, href: '/attendance', from: '#6366f1', to: '#4f46e5', glow: 'rgba(99,102,241,0.45)' },
@@ -47,8 +48,17 @@ export default function DashboardPage() {
   const [trend, setTrend]     = useState<TrendPoint[]>([]);
   const [alerts, setAlerts]   = useState<LowAttendanceAlert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [today, setToday]     = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [isWorkingDate, setIsWorkingDate] = useState(false);
 
   useEffect(() => { setUser(getUser()); }, []);
+
+  useEffect(() => {
+    getWorkingDate().then((d) => {
+      setToday(d);
+      setIsWorkingDate(d !== getRealToday());
+    }).catch(() => {});
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -112,7 +122,12 @@ export default function DashboardPage() {
             display:'flex', alignItems:'center', gap:'6px', marginBottom:'8px',
           }}>
             <Clock size={13} />
-            {format(new Date(), 'EEEE, MMMM d, yyyy')}
+            {format(new Date(`${today}T12:00:00`), 'EEEE, MMMM d, yyyy')}
+            {isWorkingDate && (
+              <span style={{ marginLeft:'6px', padding:'2px 8px', borderRadius:'99px', fontSize:'9px', fontWeight:800, background:'rgba(245,158,11,0.15)', color:'#fbbf24', border:'1px solid rgba(245,158,11,0.25)' }}>
+                Working date
+              </span>
+            )}
           </p>
           <h1 style={{ fontSize:'clamp(22px,4vw,30px)', fontWeight:900, letterSpacing:'-0.02em', color:'#f1f5f9', lineHeight:1.2, margin:0 }}>
             Good {greeting()},{' '}

@@ -15,6 +15,7 @@ import attendanceRouter from './routes/attendance';
 import testsRouter      from './routes/tests';
 import whatsappRouter   from './routes/whatsapp';
 import analyticsRouter  from './routes/analytics';
+import settingsRouter   from './routes/settings';
 
 dotenv.config();
 
@@ -79,6 +80,7 @@ app.use(`${v1}/attendance`, attendanceRouter);
 app.use(`${v1}/tests`,      testsRouter);
 app.use(`${v1}/whatsapp`,   whatsappRouter);
 app.use(`${v1}/analytics`,  analyticsRouter);
+app.use(`${v1}/settings`,   settingsRouter);
 
 // ─── 404 handler ──────────────────────────────────────────────────────────────
 app.use((_req, res) => {

@@ -2,6 +2,7 @@
  * analyticsService – aggregates attendance and test data for the dashboard.
  */
 import { pool } from '../db';
+import { getWorkingDate } from './settingsService';
 
 export interface AttendanceSummary {
   totalStudents: number;
@@ -37,7 +38,7 @@ export interface BatchAttendanceSummary {
 
 /** Today's attendance snapshot for a batch (or all batches if batchId is undefined) */
 export async function getTodayAttendanceSummary(batchId?: number): Promise<AttendanceSummary> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = await getWorkingDate();
 
   const batchFilter = batchId ? 'AND a.batch_id = $2' : '';
   const params: (string | number)[] = [today];

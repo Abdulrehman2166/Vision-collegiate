@@ -9,7 +9,7 @@ import { clsx } from 'clsx';
 import {
   LayoutDashboard, Users, BookOpen, CalendarCheck, BarChart3,
   MessageSquare, LogOut, GraduationCap, X, ChevronLeft,
-  ShieldCheck,
+  ShieldCheck, Settings,
 } from 'lucide-react';
 import { clearAuth, getUser } from '@/utils/auth';
 import api from '@/utils/api';
@@ -25,6 +25,7 @@ const NAV = [
   { href: '/analytics',  label: 'Analytics',  icon: BarChart3,       roles: ['admin','teacher'],                    color: '#f43f5e' },
   { href: '/users',      label: 'Users',      icon: ShieldCheck,     roles: ['admin'],                              color: '#8b5cf6' },
   { href: '/whatsapp',   label: 'WhatsApp',   icon: MessageSquare,   roles: ['admin'],                              color: '#22c55e' },
+  { href: '/settings',   label: 'Settings',   icon: Settings,        roles: ['admin'],                              color: '#94a3b8' },
 ];
 
 // ─── Nav item — memoised so it only re-renders when active state changes ───────
