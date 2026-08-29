@@ -152,6 +152,35 @@ export async function getStudentAttendance(req: Request, res: Response, next: Ne
 
 // ─── PDF reports ───────────────────────────────────────────────────────────────
 
+/** GET /api/v1/attendance/debug/pdf — diagnostics for PDF rendering on the server. */
+export async function runPdfDebug(req: Request, res: Response, _next: NextFunction) {
+  const report: Record<string, unknown> = { platform: process.platform, node: process.version };
+  try {
+    try {
+      const puppeteer = require('puppeteer-core');
+      report.puppeteerCore = 'ok';
+    } catch (e) {
+      report.puppeteerCore = `MISSING: ${(e as Error).message}`;
+    }
+    try {
+      const sparticuz = require('@sparticuz/chromium');
+      report.sparticuz = `ok (keys: ${Object.keys(sparticuz).join(',')})`;
+    } catch (e) {
+      report.sparticuz = `MISSING: ${(e as Error).message}`;
+    }
+    try {
+      const { resolveChromiumExecutable } = require('../services/pdfService');
+      const p = await resolveChromiumExecutable();
+      report.executablePath = String(p);
+      if (p) report.executableExists = require('node:fs').existsSync(p);
+    } catch (e) {
+      report.executablePath = `ERROR: ${(e as Error).message}`;
+    }
+  } catch (e) {
+    report.fatal = (e as Error).message;
+  }
+  res.json({ success: true, data: report });
+}
 /** POST /api/v1/attendance/reports/generate-pdf */
 export async function generateAttendancePDF(req: Request, res: Response, _next: NextFunction) {
   try {

@@ -15,7 +15,7 @@ function escapeHtml(value: unknown): string {
     .replace(/'/g, '&#39;');
 }
 
-async function resolveChromiumExecutable(): Promise<string | undefined> {
+export async function resolveChromiumExecutable(): Promise<string | undefined> {
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
     return process.env.PUPPETEER_EXECUTABLE_PATH;
   }
