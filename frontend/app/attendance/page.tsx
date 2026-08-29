@@ -39,6 +39,7 @@ export default function AttendancePage() {
   const [submitting,   setSubmitting] = useState(false);
   const [existing,     setExisting]   = useState<AttendanceRecord[]>([]);
   const [pdfContent,   setPdfContent] = useState('');
+  const [pdfUrl,       setPdfUrl]    = useState('');
   const [showPdfModal, setShowPdfModal] = useState(false);
 
   useEffect(() => {
@@ -133,10 +134,11 @@ export default function AttendancePage() {
       });
       const url = res.data.data.url;
       if (url.startsWith('data:')) {
-        const html = atob(url.split(',')[1]);
-        setPdfContent(html);
+        setPdfUrl('');
+        setPdfContent(atob(url.split(',')[1]));
       } else {
-        setPdfContent(`<iframe src="${url}" style="width:100%;height:100%;border:none;" />`);
+        setPdfUrl(url);
+        setPdfContent('');
       }
       toast.success('PDF generated');
     } catch (err: unknown) {
@@ -276,7 +278,7 @@ export default function AttendancePage() {
             <button onClick={generatePdf} className="btn-secondary">
               <FileDown className="w-4 h-4" /> {(!batchId || batchId === 'all') ? 'Generate All Students PDF' : 'Generate PDF Slip'}
             </button>
-            {pdfContent && (
+            {(pdfUrl || pdfContent) && (
               <button onClick={() => setShowPdfModal(true)} className="btn-secondary">
                 <FileDown className="w-4 h-4" /> View Slip
               </button>
@@ -299,11 +301,20 @@ export default function AttendancePage() {
               </button>
             </div>
             <div className="flex-1 overflow-auto p-2">
-              <iframe
-                srcDoc={pdfContent}
-                title="Attendance Slip"
-                className="w-full h-full min-h-[500px] border-0 rounded-lg"
-              />
+              {pdfUrl ? (
+                <iframe
+                  key={pdfUrl}
+                  src={pdfUrl}
+                  title="Attendance Slip"
+                  className="w-full h-full min-h-[500px] border-0 rounded-lg"
+                />
+              ) : (
+                <iframe
+                  srcDoc={pdfContent}
+                  title="Attendance Slip"
+                  className="w-full h-full min-h-[500px] border-0 rounded-lg"
+                />
+              )}
             </div>
             <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 dark:border-slate-700">
               <button onClick={() => setShowPdfModal(false)} className="btn-secondary text-sm">Close</button>
