@@ -84,11 +84,12 @@ export default function TestsPage() {
   const currentWeek = Math.min(Math.floor((new Date().getDate() - 1) / 7) + 1, 4);
 
   // marks entry
-  const [marksTest,    setMarksTest]    = useState<Test | null>(null);
-  const [marksSheet,   setMarksSheet]   = useState<MarksSheet | null>(null);
-  const [marksDraft,   setMarksDraft]   = useState<Record<number, string>>({});
-  const [marksLoading, setMarksLoading] = useState(false);
-  const [marksSaving,  setMarksSaving]  = useState(false);
+  const [marksTest,      setMarksTest]      = useState<Test | null>(null);
+  const [marksSheet,     setMarksSheet]     = useState<MarksSheet | null>(null);
+  const [marksDraft,     setMarksDraft]     = useState<Record<number, string>>({});
+  const [marksStudentId, setMarksStudentId] = useState('');
+  const [marksLoading,   setMarksLoading]   = useState(false);
+  const [marksSaving,    setMarksSaving]    = useState(false);
 
   // analytics reports
   const [reportMonth, setReportMonth] = useState(format(new Date(), 'yyyy-MM'));
@@ -192,15 +193,20 @@ export default function TestsPage() {
     setMarksTest(test);
     setMarksSheet(null);
     setMarksDraft({});
+    setMarksStudentId('');
     setMarksLoading(true);
     try {
       const res = await api.get<ApiResponse<MarksSheet>>(`/tests/${test.id}/marks`);
       setMarksSheet(res.data.data);
+      const students = res.data.data.students;
       setMarksDraft(
         Object.fromEntries(
-          res.data.data.students.map((s) => [s.studentId, s.marks == null ? '' : String(s.marks)]),
+          students.map((s) => [s.studentId, s.marks == null ? '' : String(s.marks)]),
         ),
       );
+      // auto-select first unmarked student
+      const first = students.find((s) => s.marks == null) ?? students[0];
+      if (first) setMarksStudentId(String(first.studentId));
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to load marks';
       toast.error(msg);
@@ -210,34 +216,41 @@ export default function TestsPage() {
     }
   }
 
-  async function saveMarks() {
-    if (!marksSheet) return;
+  async function saveStudentMarks() {
+    if (!marksSheet || !marksStudentId) return;
+    const sid = parseInt(marksStudentId, 10);
+    const v = (marksDraft[sid] ?? '').trim();
+    if (!v) { toast.error('Enter marks for this student'); return; }
+    const num = parseFloat(v);
+    if (isNaN(num) || num < 0 || num > marksSheet.test.total_marks) {
+      toast.error(`Marks must be 0 – ${marksSheet.test.total_marks}`);
+      return;
+    }
     setMarksSaving(true);
     try {
-      const records = marksSheet.students
-        .map((s) => {
-          const v = marksDraft[s.studentId]?.trim();
-          if (!v) return null;
-          const num = parseFloat(v);
-          if (isNaN(num)) return null;
-          return { studentId: s.studentId, marks: num };
-        })
-        .filter(Boolean) as { studentId: number; marks: number }[];
-      if (!records.length) {
-        toast.error('Enter marks for at least one student');
-        setMarksSaving(false);
-        return;
-      }
-      const res = await api.post<ApiResponse<{ saved: number }>>(`/tests/${marksSheet.test.id}/marks`, { records });
-      toast.success(`Saved marks for ${res.data.data.saved} students`);
-      setMarksTest(null);
-      fetchTests();
+      await api.post(`/tests/${marksSheet.test.id}/marks`, { records: [{ studentId: sid, marks: num }] });
+      const studentName = marksSheet.students.find((s) => s.studentId === sid)?.studentName ?? '';
+      toast.success(`Saved ${studentName}'s marks`);
+      // mark locally as done and advance to the next unmarked student
+      const updated = marksSheet.students.map((s) => (s.studentId === sid ? { ...s, marks: num } : s));
+      setMarksSheet({ ...marksSheet, students: updated });
+      setMarksDraft((d) => ({ ...d, [sid]: String(num) }));
+      const next = updated.find((s) => s.marks == null);
+      setMarksStudentId(next ? String(next.studentId) : '');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save marks';
       toast.error(msg);
     } finally {
       setMarksSaving(false);
     }
+  }
+
+  function jumpToNext() {
+    if (!marksSheet) return;
+    const sid = marksStudentId ? parseInt(marksStudentId, 10) : null;
+    const next = marksSheet.students.find((s) => s.marks == null && s.studentId !== sid)
+      ?? marksSheet.students.find((s) => s.marks == null);
+    if (next) setMarksStudentId(String(next.studentId));
   }
 
   function openPdfModal(title: string, url: string) {
@@ -671,34 +684,77 @@ export default function TestsPage() {
           <div className="py-8 flex justify-center"><Spinner /></div>
         ) : marksSheet ? (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[55vh] overflow-y-auto pr-1">
-              {marksSheet.students.map((s) => (
-                <div key={s.studentId} className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 p-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{s.studentName}</p>
-                    <p className="text-xs text-slate-500">{s.rollNumber || '—'}</p>
-                  </div>
-                  <input
-                    type="number"
-                    min={0}
-                    max={marksSheet.test.total_marks}
-                    step="0.5"
-                    placeholder="–"
-                    className="input w-20 text-center"
-                    value={marksDraft[s.studentId] ?? ''}
-                    onChange={(e) => setMarksDraft((d) => ({ ...d, [s.studentId]: e.target.value }))}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
-              <span className="text-xs text-slate-500">
-                {marksSheet.students.filter((s) => marksDraft[s.studentId]?.trim()).length} of {marksSheet.students.length} marked
+            {/* progress */}
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-500">
+                {marksSheet.students.filter((s) => s.marks != null || (marksDraft[s.studentId] ?? '').trim()).length}
+                {' '}of {marksSheet.students.length} students marked
               </span>
+              <span className="text-slate-400">Total: {marksSheet.test.total_marks} marks</span>
+            </div>
+
+            {/* select single student */}
+            <div>
+              <label className="label">Select Student</label>
+              <select
+                className="select w-full"
+                value={marksStudentId}
+                onChange={(e) => setMarksStudentId(e.target.value)}
+              >
+                <option value="">— Choose a student —</option>
+                {marksSheet.students.map((s) => (
+                  <option key={s.studentId} value={String(s.studentId)}>
+                    {s.marks != null ? '✓ ' : ''}{s.studentName}{s.rollNumber ? ` (${s.rollNumber})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* selected student score entry */}
+            {marksStudentId ? (() => {
+              const sid = parseInt(marksStudentId, 10);
+              const st = marksSheet.students.find((s) => s.studentId === sid);
+              if (!st) return null;
+              const marked = marksSheet.students.filter((s) => s.marks != null).length;
+              return (
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-base font-semibold">{st.studentName}</p>
+                      <p className="text-xs text-slate-500">{st.rollNumber || '—'} · #{marked + 1} to enter</p>
+                    </div>
+                    {st.marks != null && (
+                      <span className="text-xs text-emerald-600 font-medium">Saved: {st.marks} / {marksSheet.test.total_marks}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min={0}
+                      max={marksSheet.test.total_marks}
+                      step="0.5"
+                      placeholder={`0 – ${marksSheet.test.total_marks}`}
+                      className="input flex-1 text-lg text-center"
+                      value={marksDraft[sid] ?? ''}
+                      onChange={(e) => setMarksDraft((d) => ({ ...d, [sid]: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveStudentMarks(); } }}
+                      autoFocus
+                    />
+                  </div>
+                </div>
+              );
+            })() : (
+              <div className="py-8 text-center text-slate-500 text-sm">Select a student to enter their marks.</div>
+            )}
+
+            <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
+              <button onClick={jumpToNext} className="btn-secondary text-sm" disabled={!marksStudentId}>
+                Next unmarked →
+              </button>
               <div className="flex gap-2">
-                <button onClick={() => setMarksTest(null)} className="btn-secondary text-sm">Cancel</button>
-                <button onClick={saveMarks} disabled={marksSaving} className="btn-primary text-sm">
-                  {marksSaving ? <><Spinner size="sm" light /> Saving…</> : 'Save Marks'}
+                <button onClick={() => setMarksTest(null)} className="btn-secondary text-sm">Done</button>
+                <button onClick={saveStudentMarks} disabled={marksSaving || !marksStudentId} className="btn-primary text-sm">
+                  {marksSaving ? <><Spinner size="sm" light /> Saving…</> : 'Save & Next'}
                 </button>
               </div>
             </div>
