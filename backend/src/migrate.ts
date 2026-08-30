@@ -140,6 +140,47 @@ CREATE INDEX IF NOT EXISTS idx_test_results_test    ON test_results(test_id);
 CREATE INDEX IF NOT EXISTS idx_test_results_student ON test_results(student_id);
 
 -- ─────────────────────────────────────────────
+-- MASTER WEEKLY TEST SCHEDULE
+-- Rotating monthly plan: 3 tests/week per class, Week 4 = Grand Revision Test
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS test_schedule (
+  id       SERIAL PRIMARY KEY,
+  grade    VARCHAR(12) NOT NULL,          -- IX, X, XI, XII
+  week     INTEGER     NOT NULL,          -- 1-4
+  day      VARCHAR(10) NOT NULL,          -- Mon, Tue, Wed, Thu, Fri, Sat
+  subject  TEXT        NOT NULL,          -- e.g. "English", "Bio / CS", "Grand Test"
+  teacher  TEXT,                          -- "Miss", "You", NULL
+  created_at TIMESTAMP NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP NOT NULL DEFAULT now(),
+  UNIQUE (grade, week, day)
+);
+
+-- Seed the default rotating schedule (UPSERT, safe to re-run)
+INSERT INTO test_schedule (grade, week, day, subject, teacher) VALUES
+  -- Week 1
+  ('IX','1','Tue','Chem','Miss'),    ('IX','1','Thu','English',NULL),   ('IX','1','Sat','Physics',NULL),
+  ('X','1','Wed','Physics',NULL),    ('X','1','Fri','English',NULL),    ('X','1','Sat','Chem','Miss'),
+  ('XI','1','Wed','Physics',NULL),   ('XI','1','Thu','English',NULL),   ('XI','1','Sat','Maths',NULL),
+  ('XII','1','Mon','Chem','You'),    ('XII','1','Wed','English',NULL),  ('XII','1','Sat','Physics',NULL),
+  -- Week 2
+  ('IX','2','Tue','Physics',NULL),   ('IX','2','Thu','Urdu',NULL),      ('IX','2','Sat','Maths',NULL),
+  ('X','2','Wed','Maths',NULL),      ('X','2','Fri','PST',NULL),        ('X','2','Sat','Bio','Miss'),
+  ('XI','2','Wed','Chem','Miss'),    ('XI','2','Thu','Urdu',NULL),      ('XI','2','Sat','Physics',NULL),
+  ('XII','2','Mon','Chem','You'),    ('XII','2','Wed','Urdu',NULL),     ('XII','2','Sat','Maths',NULL),
+  -- Week 3
+  ('IX','3','Tue','Chem','Miss'),    ('IX','3','Thu','Islamiat',NULL),  ('IX','3','Sat','Bio / CS',NULL),
+  ('X','3','Wed','Physics',NULL),    ('X','3','Fri','Sindhi',NULL),     ('X','3','Sat','Maths',NULL),
+  ('XI','3','Wed','Physics',NULL),   ('XI','3','Thu','Islamiat',NULL),  ('XI','3','Sat','Chem','Miss'),
+  ('XII','3','Mon','Chem','You'),    ('XII','3','Wed','PST',NULL),      ('XII','3','Sat','Chem','You'),
+  -- Week 4 (Grand Revision)
+  ('IX','4','Tue','Maths',NULL),     ('IX','4','Thu','English',NULL),   ('IX','4','Sat','Grand Test',NULL),
+  ('X','4','Wed','CS / English',NULL),('X','4','Fri','PST / Sindhi',NULL),('X','4','Sat','Grand Test',NULL),
+  ('XI','4','Wed','CS / Chem',NULL), ('XI','4','Thu','Eng / Urdu',NULL),('XI','4','Sat','Grand Test',NULL),
+  ('XII','4','Mon','Chem','You'),    ('XII','4','Wed','CS / Eng',NULL), ('XII','4','Sat','Grand Test',NULL)
+ON CONFLICT (grade, week, day) DO UPDATE
+  SET subject = EXCLUDED.subject, teacher = EXCLUDED.teacher, updated_at = now();
+
+-- ─────────────────────────────────────────────
 -- WHATSAPP LOGS
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS whatsapp_logs (
@@ -199,6 +240,12 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_timestamp_test_results') THEN
     CREATE TRIGGER set_timestamp_test_results
       BEFORE UPDATE ON test_results
+      FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_timestamp_test_schedule') THEN
+    CREATE TRIGGER set_timestamp_test_schedule
+      BEFORE UPDATE ON test_schedule
       FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
   END IF;
 END;

@@ -620,15 +620,39 @@ export interface AnalyticsStudentSummary {
   grandTestPercentage: number | null; // % in Week 4 Grand Test if present
 }
 
+export interface ScheduleEntry {
+  day: string;
+  subject: string;
+  teacher: string | null;
+  done: boolean;
+  isGrand?: boolean;
+}
+
+export interface ScheduleCoverage {
+  week: number;                       // 1-4
+  scheduled: ScheduleEntry[];         // master-schedule tests for the grade/week
+}
+
+export interface ClassGap {
+  grade: string;
+  week: number;
+  day: string;
+  subject: string;
+  teacher: string | null;
+}
+
 export interface AnalyticsStudentDetail extends AnalyticsStudentSummary {
+  grade: string;                      // IX, X, XI, XII
   results: AnalyticsTestResult[];
   subjectAverages: AnalyticsSubjectAverage[];
+  scheduleCoverage: ScheduleCoverage[]; // scheduled-vs-done per week
 }
 
 export interface MonthlyAnalyticsData {
   month: string;
   scopeLabel: string;   // batch name or 'All Batches'
   students: AnalyticsStudentDetail[];
+  classGaps: ClassGap[]; // scheduled tests with no recorded results (class level)
 }
 
 export function buildMonthlyAnalyticsHtml(data: MonthlyAnalyticsData): string {
@@ -657,6 +681,27 @@ export function buildMonthlyAnalyticsHtml(data: MonthlyAnalyticsData): string {
     })
     .join('');
 
+  const gapRows = data.classGaps
+    .map((g) => `<tr>
+      <td>${escapeHtml(g.grade)}</td>
+      <td style="text-align:center">Week ${g.week}</td>
+      <td>${escapeHtml(g.day)}</td>
+      <td>${escapeHtml(g.subject)}${g.teacher ? ` <span class="tag">${escapeHtml(g.teacher)}</span>` : ''}</td>
+      <td style="text-align:center"><span class="missing">NOT RECORDED</span></td>
+    </tr>`)
+    .join('');
+
+  const gapsSection = data.classGaps.length ? `
+    <h3>Scheduled Tests Not Recorded</h3>
+    <table class="gaps">
+      <thead><tr><th>Grade</th><th style="text-align:center">Week</th><th>Day</th><th>Scheduled Subject</th><th style="text-align:center">Status</th></tr></thead>
+      <tbody>${gapRows}</tbody>
+    </table>
+    <div class="legend">These master-schedule tests have no marks entered for any student this month.</div>
+  ` : `
+    <div class="all-good">✓ All scheduled weekly tests were recorded for this month.</div>
+  `;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -674,9 +719,12 @@ export function buildMonthlyAnalyticsHtml(data: MonthlyAnalyticsData): string {
   .pct { background: #eff6ff; color: #1e40af; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
   .pct.strong { background: #dcfce7; color: #15803d; }
   .rank { background: #fef9c3; color: #a16207; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
-  .top { background: #e0e7ff !important; }
+  h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #1e3a5f; margin: 20px 0 8px 0; border-bottom: 2px solid #1e3a5f; padding-bottom: 4px; }
+  .tag { background: #d97706; color: #fff; font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 8px; }
+  .missing { background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-size: 9px; }
+  .all-good { background: #dcfce7; color: #15803d; border: 1px solid #86efac; padding: 10px 14px; border-radius: 8px; font-weight: 700; margin-top: 14px; }
   .footer { margin-top: 16px; font-size: 10px; text-align: right; color: #94a3b8; }
-  .legend { margin-top: 12px; font-size: 10px; color: #64748b; }
+  .legend { margin-top: 8px; font-size: 10px; color: #64748b; }
 </style>
 </head>
 <body>
@@ -695,6 +743,7 @@ export function buildMonthlyAnalyticsHtml(data: MonthlyAnalyticsData): string {
     <tbody>${rows}</tbody>
   </table>
   <div class="legend">% = marks obtained ÷ total marks per subject test, averaged by week.</div>
+  ${gapsSection}
   <div class="footer">Generated on ${escapeHtml(new Date().toLocaleString('en-IN'))}</div>
 </body>
 </html>`;
@@ -780,6 +829,8 @@ export function buildStudentAnalyticsHtml(data: AnalyticsStudentDetail & { month
   .flags span { display: inline-block; margin-right: 16px; padding: 6px 12px; border-radius: 8px; font-weight: 700; }
   .flag-best { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
   .flag-weak { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+  .status-done { background: #dcfce7; color: #15803d; padding: 2px 10px; border-radius: 12px; font-weight: 700; }
+  .status-skip { background: #fee2e2; color: #b91c1c; padding: 2px 10px; border-radius: 12px; font-weight: 700; }
   .footer { margin-top: 20px; font-size: 10px; text-align: right; color: #94a3b8; }
 </style>
 </head>
@@ -807,6 +858,30 @@ export function buildStudentAnalyticsHtml(data: AnalyticsStudentDetail & { month
     ${data.bestSubject ? `<span class="flag-best">★ Best Subject: ${escapeHtml(data.bestSubject)}</span>` : ''}
     ${data.weakSubject ? `<span class="flag-weak">⚠ Weak Subject: ${escapeHtml(data.weakSubject)}</span>` : ''}
   </div>
+
+  ${data.scheduleCoverage?.length ? `
+  <h3>Weekly Schedule Coverage</h3>
+  <table>
+    <thead><tr><th style="text-align:center">Week</th><th>Day</th><th>Scheduled Subject</th><th style="text-align:center">Status</th></tr></thead>
+    <tbody>
+      ${data.scheduleCoverage
+        .map((c) =>
+          c.scheduled
+            .map((s, i) => `<tr${s.isGrand ? ' class="grand"' : ''}>
+              <td style="text-align:center">${i === 0 ? `Week ${c.week}` : ''}</td>
+              <td>${escapeHtml(s.day)}</td>
+              <td>${escapeHtml(s.subject)}${s.teacher ? ` <span class="tag">${escapeHtml(s.teacher)}</span>` : ''}${s.isGrand ? ' <span class="tag">Grand</span>' : ''}</td>
+              <td style="text-align:center">${s.done
+                ? '<span class="status-done">✓ Done</span>'
+                : '<span class="status-skip">✗ Skipped</span>'}</td>
+            </tr>`)
+            .join(''),
+        )
+        .join('')}
+    </tbody>
+  </table>
+  <div class="legend">Compared against the academy master weekly test schedule for ${escapeHtml(data.grade)}.</div>
+  ` : ''}
 
   <h3>Subject-Wise Performance</h3>
   <table>

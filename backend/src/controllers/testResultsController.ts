@@ -159,7 +159,7 @@ export async function generateMonthlyAnalytics(req: Request, res: Response, next
     let roster;
     if (scopeBatchIds) {
       roster = await pool.query(
-        `SELECT s.id, s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber", b.id AS "batchId", b.name AS "batchName"
+        `SELECT s.id, s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber", b.id AS "batchId", b.name AS "batchName", b.grade AS grade
          FROM students s JOIN batches b ON b.id = s.batch_id
          WHERE s.status = 'active' AND b.id = ANY($1::int[])
          ORDER BY b.id, s.roll_number, s.name`,
@@ -167,7 +167,7 @@ export async function generateMonthlyAnalytics(req: Request, res: Response, next
       );
     } else {
       roster = await pool.query(
-        `SELECT s.id, s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber", b.id AS "batchId", b.name AS "batchName"
+        `SELECT s.id, s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber", b.id AS "batchId", b.name AS "batchName", b.grade AS grade
          FROM students s JOIN batches b ON b.id = s.batch_id
          WHERE s.status = 'active'
          ORDER BY b.id, s.roll_number, s.name`,
@@ -226,6 +226,28 @@ export async function generateMonthlyAnalytics(req: Request, res: Response, next
       });
     }
 
+    // Master test schedule (grade → week → day) for coverage comparison
+    const gradesInScope = [...new Set<string>(rosterRows.map((r: { grade: string }) => r.grade))];
+    let scheduleRows;
+    if (gradesInScope.length) {
+      scheduleRows = await pool.query(
+        `SELECT grade, week, day, subject, teacher
+         FROM test_schedule WHERE grade = ANY($1::varchar[])
+         ORDER BY week,
+           CASE day WHEN 'Mon' THEN 1 WHEN 'Tue' THEN 2 WHEN 'Wed' THEN 3 WHEN 'Thu' THEN 4 WHEN 'Fri' THEN 5 WHEN 'Sat' THEN 6 END`,
+        [gradesInScope],
+      );
+    } else {
+      scheduleRows = { rows: [] };
+    }
+    const scheduleByGrade = new Map<string, Map<number, { day: string; subject: string; teacher: string | null }[]>>();
+    for (const r of scheduleRows.rows) {
+      if (!scheduleByGrade.has(r.grade)) scheduleByGrade.set(r.grade, new Map());
+      const weeks = scheduleByGrade.get(r.grade)!;
+      if (!weeks.has(r.week)) weeks.set(r.week, []);
+      weeks.get(r.week)!.push({ day: r.day, subject: r.subject, teacher: r.teacher });
+    }
+
     // Build summaries
     const scopeLabel = data.batchId
       ? (rosterRows[0]?.batchName ?? `Batch #${data.batchId}`)
@@ -235,7 +257,12 @@ export async function generateMonthlyAnalytics(req: Request, res: Response, next
 
     const details: pdfService.AnalyticsStudentDetail[] = rosterRows
       .filter((r) => byStudent.has(Number(r.id)) || data.studentId)
-      .map((r) => buildDetail(Number(r.id), r.studentName, r.rollNumber, Number(r.batchId), r.batchName, byStudent.get(Number(r.id)) ?? []));
+      .map((r) => {
+        const detail = buildDetail(Number(r.id), r.studentName, r.rollNumber, Number(r.batchId), r.batchName, byStudent.get(Number(r.id)) ?? []);
+        detail.grade = r.grade;
+        detail.scheduleCoverage = computeCoverage(r.grade, detail.results, scheduleByGrade);
+        return detail;
+      });
 
     if (!details.length) {
       throw createError('No test results recorded for this month', 404);
@@ -246,6 +273,9 @@ export async function generateMonthlyAnalytics(req: Request, res: Response, next
     const rankMap = new Map<number, number>();
     ranked.forEach((s, i) => rankMap.set(s.studentId, i + 1));
     for (const s of details) s.rank = rankMap.get(s.studentId) ?? details.length;
+
+    // Class-level scheduled-vs-recorded gaps (shared by all students in the grade)
+    const classGaps = computeClassGaps(gradesInScope, scheduleByGrade, byStudent);
 
     if (data.studentId) {
       const student = details[0];
@@ -258,11 +288,85 @@ export async function generateMonthlyAnalytics(req: Request, res: Response, next
       month:       data.month,
       scopeLabel,
       students:    details,
+      classGaps,
     });
     await uploadAnalytics(res, pdf, `analytics/monthly/${data.batchId ?? 'all'}/${data.month}`, `analytics-${data.month}`);
   } catch (err) {
     next(err);
   }
+}
+
+function normalizeSubject(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/\(.*?\)/g, '') // strip (Miss) / (You)
+    .replace(/[^a-z0-9\s/]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function subjectsOverlap(a: string, b: string): boolean {
+  const na = normalizeSubject(a);
+  const nb = normalizeSubject(b);
+  if (!na || !nb) return true; // don't flag when subject is unknown
+  // match on whole tokens or first segment of "a / b"
+  const segments = (s: string) => s.split('/').map((x) => x.trim()).filter(Boolean);
+  for (const sa of segments(na)) {
+    for (const sb of segments(nb)) {
+      if (sa === sb || sa.includes(sb) || sb.includes(sa)) return true;
+    }
+  }
+  return false;
+}
+
+function computeCoverage(
+  grade: string,
+  results: pdfService.AnalyticsTestResult[],
+  scheduleByGrade: Map<string, Map<number, { day: string; subject: string; teacher: string | null }[]>>,
+): pdfService.ScheduleCoverage[] {
+  const weeks = scheduleByGrade.get(grade);
+  if (!weeks) return [];
+  const coverage: pdfService.ScheduleCoverage[] = [];
+  for (let w = 1; w <= 4; w++) {
+    const entries = weeks.get(w);
+    if (!entries?.length) continue;
+    coverage.push({
+      week: w,
+      scheduled: entries.map((e) => {
+        const done = results.some((r) => r.week === w && subjectsOverlap(r.subject, e.subject));
+        const isGrand = /grand/i.test(e.subject);
+        return { day: e.day, subject: e.subject, teacher: e.teacher, done, isGrand };
+      }),
+    });
+  }
+  return coverage;
+}
+
+function computeClassGaps(
+  grades: string[],
+  scheduleByGrade: Map<string, Map<number, { day: string; subject: string; teacher: string | null }[]>>,
+  byStudent: Map<number, pdfService.AnalyticsTestResult[]>,
+): pdfService.ClassGap[] {
+  // A class-level gap = a scheduled test subject that has NO recorded result
+  // from ANY student who took tests that week.
+  const allResults = [...byStudent.values()].flat();
+  const gaps: pdfService.ClassGap[] = [];
+  for (const grade of grades) {
+    const weeks = scheduleByGrade.get(grade);
+    if (!weeks) continue;
+    for (let w = 1; w <= 4; w++) {
+      const entries = weeks.get(w);
+      if (!entries?.length) continue;
+      for (const e of entries) {
+        if (/grand/i.test(e.subject)) continue; // grand test handled per student
+        const anyRecorded = allResults.some((r) => r.week === w && subjectsOverlap(r.subject, e.subject));
+        if (!anyRecorded) {
+          gaps.push({ grade, week: w, day: e.day, subject: e.subject, teacher: e.teacher });
+        }
+      }
+    }
+  }
+  return gaps;
 }
 
 function buildDetail(
@@ -313,6 +417,8 @@ function buildDetail(
     bestSubject,
     weakSubject,
     grandTestPercentage: grand ? grand.percentage : null,
+    grade: '',
+    scheduleCoverage: [],
     results,
     subjectAverages,
   };

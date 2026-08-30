@@ -9,7 +9,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Send, Download, ChevronDown, ChevronUp, ClipboardList, BarChart3, FileSpreadsheet, X } from 'lucide-react';
+import { Plus, Trash2, Send, Download, ChevronDown, ChevronUp, ClipboardList, BarChart3, FileSpreadsheet, X, CalendarRange } from 'lucide-react';
 import { format } from 'date-fns';
 import api, { type ApiResponse, type Test, type Batch } from '@/utils/api';
 import { hasRole } from '@/utils/auth';
@@ -58,8 +58,13 @@ interface MarksSheet {
   students: MarksStudent[];
 }
 
+interface ScheduleDay { day: string; subject: string; teacher: string | null }
+interface ScheduleWeek { week: number; days: ScheduleDay[] }
+interface ScheduleGrade { grade: string; weeks: ScheduleWeek[] }
+
 export default function TestsPage() {
   const canCreate = hasRole('admin', 'teacher');
+  const canEditSchedule = hasRole('admin');
   const [tests,    setTests]    = useState<Test[]>([]);
   const [batches,  setBatches]  = useState<Batch[]>([]);
   const [loading,  setLoading]  = useState(true);
@@ -70,6 +75,13 @@ export default function TestsPage() {
   const [step,       setStep]         = useState(1);
   const [submitting, setSubmitting]   = useState(false);
   const [expandedQ,  setExpandedQ]    = useState<number | null>(null);
+
+  // master weekly schedule
+  const [schedule,      setSchedule]      = useState<ScheduleGrade[]>([]);
+  const [scheduleOpen,  setScheduleOpen]  = useState(false);
+  const [scheduleDraft, setScheduleDraft] = useState<ScheduleGrade[]>([]);
+  const [savingSchedule, setSavingSchedule] = useState(false);
+  const currentWeek = Math.min(Math.floor((new Date().getDate() - 1) / 7) + 1, 4);
 
   // marks entry
   const [marksTest,    setMarksTest]    = useState<Test | null>(null);
@@ -117,6 +129,12 @@ export default function TestsPage() {
   useEffect(() => {
     api.get<ApiResponse<Batch[]>>('/batches?active=true')
       .then((r) => setBatches(r.data.data))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    api.get<ApiResponse<ScheduleGrade[]>>('/schedule')
+      .then((r) => setSchedule(r.data.data))
       .catch(() => {});
   }, []);
 
@@ -265,6 +283,24 @@ export default function TestsPage() {
     } finally { setGeneratingKind(null); }
   }
 
+  async function saveSchedule() {
+    setSavingSchedule(true);
+    try {
+      const entries = scheduleDraft.flatMap((g) =>
+        g.weeks.flatMap((w) =>
+          w.days.map((d) => ({ grade: g.grade, week: w.week, day: d.day, subject: d.subject, teacher: d.teacher ?? null })),
+        ),
+      );
+      const res = await api.put<ApiResponse<{ saved: number }>>('/schedule', { entries });
+      toast.success(`Saved ${res.data.data.saved} schedule entries`);
+      setSchedule(scheduleDraft);
+      setScheduleOpen(false);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save schedule';
+      toast.error(msg);
+    } finally { setSavingSchedule(false); }
+  }
+
   const columns = [
     { key: 'title',         header: 'Title' },
     { key: 'subject',       header: 'Subject' },
@@ -313,6 +349,62 @@ export default function TestsPage() {
           <button onClick={() => { reset(); setStep(1); setWizardOpen(true); }} className="btn-primary self-start sm:self-auto">
             <Plus className="w-4 h-4" /> Create Test
           </button>
+        )}
+      </div>
+
+      {/* Master Weekly Test Schedule */}
+      <div className="card p-4 sm:p-5 mb-5">
+        <div className="flex items-center gap-2 mb-4">
+          <CalendarRange className="w-5 h-5 text-amber-400" />
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-wide">MASTER WEEKLY TEST SCHEDULE</h2>
+          <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto">
+            3 tests/week · Week 4 = Grand Revision Test {canEditSchedule && (
+              <button onClick={() => { setScheduleDraft(schedule); setScheduleOpen(true); }} className="ml-2 text-xs btn-secondary py-1 px-3">Edit</button>
+            )}
+          </span>
+        </div>
+        {schedule.length === 0 ? (
+          <div className="text-sm text-slate-500">Schedule not loaded.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="text-left text-xs uppercase text-slate-500 dark:text-slate-400 p-2">Week</th>
+                  {schedule.map((g) => (
+                    <th key={g.grade} className="text-left text-xs uppercase text-slate-500 dark:text-slate-400 p-2">Class {g.grade}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[1, 2, 3, 4].map((w) => (
+                  <tr key={w} className={w === currentWeek ? 'bg-amber-50 dark:bg-amber-900/20' : ''}>
+                    <td className="p-2 font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                      Week {w}{w === 4 && <span className="ml-1 text-[10px] badge-yellow">Grand</span>}
+                      {w === currentWeek && <span className="ml-1 text-[10px] badge-green">This week</span>}
+                    </td>
+                    {schedule.map((g) => {
+                      const week = g.weeks.find((x) => x.week === w);
+                      return (
+                        <td key={g.grade} className="p-2">
+                          {week?.days.length ? (
+                            <ul className="space-y-1">
+                              {week.days.map((d) => (
+                                <li key={d.day} className="text-xs text-slate-600 dark:text-slate-300">
+                                  <span className="inline-block w-8 font-medium text-slate-500 dark:text-slate-400">{d.day}:</span>
+                                  {d.subject}{d.teacher ? <span className="text-slate-400"> ({d.teacher})</span> : null}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : <span className="text-xs text-slate-400">—</span>}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -608,6 +700,65 @@ export default function TestsPage() {
         ) : (
           <div className="py-8 text-center text-slate-500">Failed to load.</div>
         )}
+      </Modal>
+
+      {/* ── Edit Schedule Modal ── */}
+      <Modal open={scheduleOpen} onClose={() => setScheduleOpen(false)} title="Edit Weekly Test Schedule" size="xl">
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500">
+            Edit the rotating plan. Week 4 closes each cycle with a Grand Revision Test. Save to apply.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[55vh] overflow-y-auto pr-1">
+            {scheduleDraft.map((g, gi) => (
+              <div key={g.grade} className="rounded-xl border border-slate-200 dark:border-slate-700 p-3">
+                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Class {g.grade}</h3>
+                {g.weeks.map((w) => (
+                  <div key={w.week} className="mb-3">
+                    <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-1">
+                      Week {w.week}{w.week === 4 && <span className="ml-1 text-amber-500 font-bold">· Grand</span>}
+                    </p>
+                    {w.days.map((d, di) => (
+                      <div key={d.day} className="flex items-center gap-2 mb-1">
+                        <span className="w-10 text-xs font-medium text-slate-500">{d.day}</span>
+                        <input
+                          className="input flex-1 text-sm"
+                          value={d.subject}
+                          onChange={(e) => {
+                            const next = scheduleDraft.map((gr, i) => i === gi
+                              ? { ...gr, weeks: gr.weeks.map((ww) => ww.week === w.week
+                                ? { ...ww, days: ww.days.map((dd, j) => j === di ? { ...dd, subject: e.target.value } : dd) }
+                                : ww) }
+                              : gr);
+                            setScheduleDraft(next);
+                          }}
+                        />
+                        <input
+                          className="input w-20 text-sm"
+                          placeholder="Teacher"
+                          value={d.teacher ?? ''}
+                          onChange={(e) => {
+                            const next = scheduleDraft.map((gr, i) => i === gi
+                              ? { ...gr, weeks: gr.weeks.map((ww) => ww.week === w.week
+                                ? { ...ww, days: ww.days.map((dd, j) => j === di ? { ...dd, teacher: e.target.value || null } : dd) }
+                                : ww) }
+                              : gr);
+                            setScheduleDraft(next);
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+            <button onClick={() => setScheduleOpen(false)} className="btn-secondary text-sm">Cancel</button>
+            <button onClick={saveSchedule} disabled={savingSchedule} className="btn-primary text-sm">
+              {savingSchedule ? <><Spinner size="sm" light /> Saving…</> : 'Save Schedule'}
+            </button>
+          </div>
+        </div>
       </Modal>
 
       {/* ── PDF Preview Modal ── */}

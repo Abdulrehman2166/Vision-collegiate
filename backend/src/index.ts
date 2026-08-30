@@ -16,6 +16,7 @@ import testsRouter      from './routes/tests';
 import whatsappRouter   from './routes/whatsapp';
 import analyticsRouter  from './routes/analytics';
 import settingsRouter   from './routes/settings';
+import scheduleRouter   from './routes/schedule';
 
 dotenv.config();
 
@@ -81,6 +82,7 @@ app.use(`${v1}/tests`,      testsRouter);
 app.use(`${v1}/whatsapp`,   whatsappRouter);
 app.use(`${v1}/analytics`,  analyticsRouter);
 app.use(`${v1}/settings`,   settingsRouter);
+app.use(`${v1}/schedule`,   scheduleRouter);
 
 // ─── 404 handler ──────────────────────────────────────────────────────────────
 app.use((_req, res) => {
