@@ -133,8 +133,14 @@ export default function TestsPage() {
   }, []);
 
   useEffect(() => {
-    api.get<ApiResponse<ScheduleGrade[]>>('/schedule')
-      .then((r) => setSchedule(r.data.data))
+    api.get<ApiResponse<{ grades: ScheduleGrade[] }>>('/schedule')
+      .then((r) => {
+        const grades = r.data.data?.grades;
+        if (Array.isArray(grades)) {
+          setSchedule(grades);
+          setScheduleDraft(grades);
+        }
+      })
       .catch(() => {});
   }, []);
 
