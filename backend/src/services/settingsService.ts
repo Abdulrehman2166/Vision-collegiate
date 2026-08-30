@@ -30,3 +30,22 @@ export async function setWorkingDate(date: string | null): Promise<void> {
     await pool.query(`DELETE FROM app_settings WHERE key = 'working_date'`);
   }
 }
+
+const DEFAULT_ADMIN_WHATSAPP = '03122621979';
+
+export async function getAdminWhatsapp(): Promise<string> {
+  return (await getSetting('admin_whatsapp')) ?? DEFAULT_ADMIN_WHATSAPP;
+}
+
+export async function setAdminWhatsapp(value: string | null): Promise<string> {
+  if (value) {
+    await pool.query(
+      `INSERT INTO app_settings (key, value, updated_at) VALUES ('admin_whatsapp', $1, now())
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
+      [value],
+    );
+  } else {
+    await pool.query(`DELETE FROM app_settings WHERE key = 'admin_whatsapp'`);
+  }
+  return getAdminWhatsapp();
+}

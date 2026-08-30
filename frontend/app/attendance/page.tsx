@@ -5,7 +5,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { SectionLoader } from '@/components/ui/Loading';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
-import { CheckCircle2, XCircle, Clock, Send, FileDown, CalendarDays, X, MessageCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Send, FileDown, CalendarDays, X, MessageCircle, CalendarRange, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
 import api, { type ApiResponse, type Batch, type AttendanceRecord, type Student } from '@/utils/api';
 import { getWorkingDate } from '@/utils/dates';
@@ -41,10 +41,23 @@ export default function AttendancePage() {
   const [pdfContent,   setPdfContent] = useState('');
   const [pdfUrl,       setPdfUrl]    = useState('');
   const [showPdfModal, setShowPdfModal] = useState(false);
+  const [rangeFrom,    setRangeFrom]  = useState('');
+  const [rangeTo,      setRangeTo]    = useState('');
+  const [reportMonth,  setReportMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [adminPhone,   setAdminPhone] = useState('03122621979');
+  const [pdfTitle,     setPdfTitle]   = useState('Attendance Slip');
 
   useEffect(() => {
     getWorkingDate()
       .then((d) => setDate(d))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    api.get<ApiResponse<{ workingDate: string; adminWhatsapp?: string }>>('/settings')
+      .then((r) => {
+        if (r.data.data?.adminWhatsapp) setAdminPhone(r.data.data.adminWhatsapp);
+      })
       .catch(() => {});
   }, []);
 
@@ -140,7 +153,65 @@ export default function AttendancePage() {
         setPdfUrl(url);
         setPdfContent('');
       }
+      setPdfTitle(`Attendance Slip – ${date}`);
       toast.success('PDF generated');
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
+      toast.error(message ?? 'PDF generation failed');
+    }
+  }
+
+  async function generateRangePdf() {
+    if (!rangeFrom || !rangeTo) {
+      toast.error('Select both From and To dates for the weekly PDF');
+      return;
+    }
+    try {
+      const isAll = !batchId || batchId === 'all';
+      const res = await api.post<ApiResponse<{ url: string }>>('/attendance/reports/generate-pdf', {
+        type:    'range_slip',
+        ...(isAll ? {} : { batchId: parseInt(batchId) }),
+        from: rangeFrom,
+        to:   rangeTo,
+      });
+      const url = res.data.data.url;
+      if (url.startsWith('data:')) {
+        setPdfUrl('');
+        setPdfContent(atob(url.split(',')[1]));
+      } else {
+        setPdfUrl(url);
+        setPdfContent('');
+      }
+      setPdfTitle(`Weekly Attendance – ${rangeFrom} to ${rangeTo}`);
+      toast.success('Weekly PDF generated');
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
+      toast.error(message ?? 'PDF generation failed');
+    }
+  }
+
+  async function generateMonthlyReport() {
+    if (!reportMonth) {
+      toast.error('Select a month for the monthly report');
+      return;
+    }
+    try {
+      const isAll = !batchId || batchId === 'all';
+      const res = await api.post<ApiResponse<{ url: string }>>('/attendance/reports/generate-pdf', {
+        type:    'monthly_report',
+        ...(isAll ? {} : { batchId: parseInt(batchId) }),
+        month: reportMonth,
+      });
+      const url = res.data.data.url;
+      if (url.startsWith('data:')) {
+        setPdfUrl('');
+        setPdfContent(atob(url.split(',')[1]));
+      } else {
+        setPdfUrl(url);
+        setPdfContent('');
+      }
+      setPdfTitle(`Monthly Analysis – ${reportMonth}`);
+      toast.success('Monthly report generated');
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
       toast.error(message ?? 'PDF generation failed');
@@ -149,10 +220,23 @@ export default function AttendancePage() {
 
   function sendWhatsappToParents() {
     const parentsWithPhone = grid.filter((r) => r.parentPhone && r.parentPhone.trim());
-    if (!parentsWithPhone.length) {
-      toast.error('No parent phone numbers found for students in this batch');
+    const withoutPhone     = grid.filter((r) => !r.parentPhone || !r.parentPhone.trim());
+    if (!parentsWithPhone.length && !withoutPhone.length) {
+      toast.error('No students found to share');
       return;
     }
+    if (parentsWithPhone.length === 0 && withoutPhone.length > 0) {
+      // No contacts at all -> the whole update goes to the admin
+      const names = withoutPhone.map((r) => r.studentName).join(', ');
+      const batchName = batches.find((b) => String(b.id) === batchId)?.name ?? '';
+      const msg = `Dear Admin, the following students have no parent contact on file (batch: ${batchName || 'All'}, date: ${date}): ${names}. - Vision Collegiate`;
+      const admin = adminPhone.replace(/[^0-9]/g, '');
+      if (admin.length < 7) { toast.error('Invalid admin WhatsApp number'); return; }
+      window.open(`https://wa.me/${admin}?text=${encodeURIComponent(msg)}`, '_blank');
+      toast.success('Opening WhatsApp for admin');
+      return;
+    }
+
     const batchName = batches.find((b) => String(b.id) === batchId)?.name ?? '';
     const message = `Dear Parent, this is the attendance update for your child on ${date}. Batch: ${batchName}. Please contact the school for more details. - Vision Collegiate`;
     const encoded = encodeURIComponent(message);
@@ -167,7 +251,21 @@ export default function AttendancePage() {
       window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
       opened++;
     }
-    toast.success(`Opening WhatsApp for ${opened} parents`);
+
+    // Students without a contact -> the admin receives the update instead
+    if (withoutPhone.length) {
+      const names = withoutPhone.map((r) => r.studentName).join(', ');
+      const adminFlash = `Dear Admin, students without parent contacts on ${date} (${batchName || 'All'}): ${names}. - Vision Collegiate`;
+      const admin = adminPhone.replace(/[^0-9]/g, '');
+      if (admin.length >= 7) {
+        window.open(`https://wa.me/${admin}?text=${encodeURIComponent(adminFlash)}`, '_blank');
+      }
+    }
+
+    const summary = withoutPhone.length
+      ? `Opening WhatsApp for ${opened} parents (+1 admin for ${withoutPhone.length} without contacts)`
+      : `Opening WhatsApp for ${opened} parents`;
+    toast.success(summary);
   }
 
   const present  = grid.filter((r) => r.status === 'present').length;
@@ -208,6 +306,28 @@ export default function AttendancePage() {
         {existing.length > 0 && (
           <span className="badge-yellow self-end mb-0.5">Already marked – editing</span>
         )}
+      </div>
+
+      {/* Report / history controls */}
+      <div className="card p-4 mb-5 flex flex-col lg:flex-row lg:items-end gap-3">
+        <div>
+          <label className="label">Weekly / Range PDF – From</label>
+          <input type="date" className="input w-40" value={rangeFrom} onChange={(e) => setRangeFrom(e.target.value)} />
+        </div>
+        <div>
+          <label className="label">To</label>
+          <input type="date" className="input w-40" value={rangeTo} onChange={(e) => setRangeTo(e.target.value)} />
+        </div>
+        <button onClick={generateRangePdf} className="btn-secondary">
+          <CalendarRange className="w-4 h-4" /> Weekly / Range PDF
+        </button>
+        <div className="lg:ml-auto">
+          <label className="label">Monthly Analysis</label>
+          <input type="month" className="input w-40" value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} />
+        </div>
+        <button onClick={generateMonthlyReport} className="btn-secondary">
+          <BarChart3 className="w-4 h-4" /> Monthly Report
+        </button>
       </div>
 
       {/* Bulk actions */}
@@ -295,7 +415,7 @@ export default function AttendancePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="font-semibold text-slate-900 dark:text-white">Attendance Slip – {date}</h3>
+              <h3 className="font-semibold text-slate-900 dark:text-white">{pdfTitle}</h3>
               <button onClick={() => setShowPdfModal(false)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
                 <X className="w-5 h-5 text-slate-500" />
               </button>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { SectionLoader } from '@/components/ui/Loading';
-import { CalendarDays, RotateCcw, Calendar, CheckCircle2 } from 'lucide-react';
+import { CalendarDays, RotateCcw, Calendar, CheckCircle2, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import api, { type ApiResponse } from '@/utils/api';
@@ -13,11 +13,15 @@ export default function SettingsPage() {
   const [loading,    setLoading]    = useState(true);
   const [saving,     setSaving]     = useState(false);
   const [workingDate, setWorkingDate] = useState('');
+  const [adminWhatsapp, setAdminWhatsapp] = useState('03122621979');
   const [realToday,  setRealToday]  = useState(getRealToday());
 
   useEffect(() => {
-    api.get<ApiResponse<{ workingDate: string }>>('/settings')
-      .then((r) => setWorkingDate(r.data.data.workingDate ?? getRealToday()))
+    api.get<ApiResponse<{ workingDate: string; adminWhatsapp?: string }>>('/settings')
+      .then((r) => {
+        setWorkingDate(r.data.data.workingDate ?? getRealToday());
+        if (r.data.data.adminWhatsapp) setAdminWhatsapp(r.data.data.adminWhatsapp);
+      })
       .catch(() => toast.error('Failed to load settings'))
       .finally(() => setLoading(false));
   }, []);
@@ -26,9 +30,12 @@ export default function SettingsPage() {
     if (!workingDate) return;
     setSaving(true);
     try {
-      const res = await api.put<ApiResponse<{ workingDate: string }>>('/settings', { workingDate });
+      const res = await api.put<ApiResponse<{ workingDate: string }>>('/settings', {
+        workingDate,
+        adminWhatsapp,
+      });
       setWorkingDate(res.data.data.workingDate);
-      toast.success('Working date saved');
+      toast.success('Settings saved');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save';
       toast.error(msg);
@@ -97,16 +104,45 @@ export default function SettingsPage() {
 
             <div className="flex flex-wrap gap-2">
               <button onClick={save} disabled={saving} className="btn-primary">
-                {saving ? 'Saving…' : <><CheckCircle2 className="w-4 h-4" /> Save Working Date</>}
+                {saving ? 'Saving…' : <><CheckCircle2 className="w-4 h-4" /> Save Settings</>}
               </button>
               <button onClick={reset} disabled={saving} className="btn-secondary">
-                <RotateCcw className="w-4 h-4" /> Reset to Real Today
+                <RotateCcw className="w-4 h-4" /> Reset Working Date
               </button>
             </div>
 
             <p className="text-xs text-slate-400 mt-4">
               Real current date: {realToday}. When set, the working date overrides it everywhere in the app.
             </p>
+          </div>
+
+          <div className="card p-5">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center flex-shrink-0">
+                <MessageCircle className="w-5 h-5 text-green-400" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-slate-900 dark:text-white">Admin WhatsApp Number</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Used when sharing attendance: students without a parent contact on file are
+                  reported to this number instead.
+                </p>
+              </div>
+            </div>
+
+            <label className="label">Admin WhatsApp number</label>
+            <input
+              type="tel"
+              className="input w-56 mb-4"
+              placeholder="03122621979"
+              value={adminWhatsapp}
+              onChange={(e) => setAdminWhatsapp(e.target.value)}
+            />
+            <div>
+              <button onClick={save} disabled={saving} className="btn-primary">
+                {saving ? 'Saving…' : <><CheckCircle2 className="w-4 h-4" /> Save Admin Number</>}
+              </button>
+            </div>
           </div>
 
         </div>

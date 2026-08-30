@@ -6,6 +6,7 @@ import * as pdfService from '../services/pdfService';
 import * as storageService from '../services/storageService';
 import * as whatsappService from '../services/whatsappService';
 import { assertBatchAccess, assertStudentAccess, scopedBatchIds } from '../utils/access';
+import { getAdminWhatsapp } from '../services/settingsService';
 
 const markSchema = z.object({
   batchId: z.number().int().positive().optional(),
@@ -156,10 +157,12 @@ export async function getStudentAttendance(req: Request, res: Response, next: Ne
 export async function generateAttendancePDF(req: Request, res: Response, _next: NextFunction) {
   try {
     const schema = z.object({
-      type:    z.enum(['daily_slip', 'monthly_card']),
-      batchId: z.number().int().positive().optional(),            // omitted = all students (daily_slip)
-      date:    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (expected YYYY-MM-DD)').optional(),   // for daily_slip
-      month:   z.string().regex(/^\d{4}-\d{2}$/, 'Invalid month format (expected YYYY-MM)').optional(),          // "2025-01" for monthly_card
+      type:    z.enum(['daily_slip', 'range_slip', 'monthly_report', 'monthly_card']),
+      batchId: z.number().int().positive().optional(),            // omitted = all students
+      date:    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (expected YYYY-MM-DD)').optional(),   // daily_slip
+      from:    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid from format (expected YYYY-MM-DD)').optional(),    // range_slip
+      to:      z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid to format (expected YYYY-MM-DD)').optional(),      // range_slip
+      month:   z.string().regex(/^\d{4}-\d{2}$/, 'Invalid month format (expected YYYY-MM)').optional(),          // monthly_report / monthly_card
       studentId: z.number().int().positive().optional(), // for monthly_card of a single student
     });
 
@@ -169,6 +172,16 @@ export async function generateAttendancePDF(req: Request, res: Response, _next: 
 
     let pdfBuffer: Buffer;
     let filePath: string;
+
+    // Shared helper: scope for "all students" queries (teachers limited to their batches)
+    const buildScope = async (): Promise<string> => {
+      if (data.batchId) return 'AND a.batch_id = $2';
+      const allowed = await scopedBatchIds(req.user!);
+      if (req.user!.role === 'teacher' && !allowed?.length) {
+        throw createError('No batches assigned to you', 403);
+      }
+      return allowed?.length ? 'AND a.batch_id = ANY($2::int[])' : '';
+    };
 
     if (data.type === 'daily_slip') {
       if (!data.date) throw createError('`date` is required for daily_slip', 400);
@@ -188,13 +201,8 @@ export async function generateAttendancePDF(req: Request, res: Response, _next: 
         );
         rows = r;
       } else {
-        // All-students slip – teachers are scoped to their assigned batches
-        const allowed = await scopedBatchIds(req.user!);
-        if (req.user!.role === 'teacher') {
-          if (!allowed?.length) throw createError('No batches assigned to you', 403);
-        }
-        const scope = allowed?.length ? 'AND a.batch_id = ANY($2::int[])' : '';
-        const params: unknown[] = allowed?.length ? [data.date, allowed] : [data.date];
+        const scope = await buildScope();
+        const params: unknown[] = scope ? [data.date, await scopedBatchIds(req.user!)] : [data.date];
         const r = await pool.query(
           `SELECT s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber",
                   a.status, a.date::text AS date,
@@ -215,6 +223,133 @@ export async function generateAttendancePDF(req: Request, res: Response, _next: 
       filePath  = isHtmlFallback
         ? `attendance/slips/${data.batchId ?? 'all'}/${data.date}.html`
         : `attendance/slips/${data.batchId ?? 'all'}/${data.date}.pdf`;
+
+    } else if (data.type === 'range_slip') {
+      if (!data.from || !data.to) throw createError('`from` and `to` (YYYY-MM-DD) are required for range_slip', 400);
+      if (data.from > data.to) throw createError('`from` must be on or before `to`', 400);
+
+      let rows;
+      if (data.batchId) {
+        const r = await pool.query(
+          `SELECT s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber",
+                  a.status, a.date::text AS date,
+                  b.name AS "batchName"
+           FROM attendance a
+           JOIN students s ON s.id = a.student_id
+           JOIN batches  b ON b.id = a.batch_id
+           WHERE a.batch_id = $1 AND a.date BETWEEN $2 AND $3
+           ORDER BY s.roll_number, s.name, a.date`,
+          [data.batchId, data.from, data.to],
+        );
+        rows = r;
+      } else {
+        const scope = await buildScope();
+        const allowed = await scopedBatchIds(req.user!);
+        const params: unknown[] = scope ? [data.from, data.to, allowed] : [data.from, data.to];
+        const r = await pool.query(
+          `SELECT s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber",
+                  a.status, a.date::text AS date,
+                  b.name AS "batchName"
+           FROM attendance a
+           JOIN students s ON s.id = a.student_id
+           JOIN batches  b ON b.id = a.batch_id
+           WHERE a.date BETWEEN $1 AND $2 ${scope}
+           ORDER BY s.roll_number, s.name, a.date`,
+          params,
+        );
+        rows = r;
+      }
+      if (!rows.rows.length) throw createError('No attendance records found for this range', 404);
+
+      const students = new Map<string, pdfService.RangeSlipStudent>();
+      for (const r of rows.rows) {
+        const key = `${r.rollNumber}::${r.studentName}::${r.batchName}`;
+        if (!students.has(key)) {
+          students.set(key, { studentName: r.studentName, rollNumber: r.rollNumber, batchName: r.batchName, days: {} });
+        }
+        students.get(key)!.days[r.date as string] = r.status as string;
+      }
+
+      pdfBuffer = await pdfService.generateRangeSlipPdf({
+        from: data.from,
+        to: data.to,
+        students: [...students.values()],
+      });
+      const isHtmlFallback = pdfBuffer.toString('utf-8', 0, 15).includes('<!DOCTYPE');
+      filePath  = isHtmlFallback
+        ? `attendance/range/${data.batchId ?? 'all'}/${data.from}_${data.to}.html`
+        : `attendance/range/${data.batchId ?? 'all'}/${data.from}_${data.to}.pdf`;
+
+    } else if (data.type === 'monthly_report') {
+      if (!data.month) throw createError('`month` (YYYY-MM) is required for monthly_report', 400);
+
+      let rows;
+      if (data.batchId) {
+        const r = await pool.query(
+          `SELECT s.id, s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber",
+                  b.name AS "batchName",
+                  COUNT(*) FILTER (WHERE a.status = 'present') AS present,
+                  COUNT(*) FILTER (WHERE a.status = 'late')    AS late,
+                  COUNT(*) FILTER (WHERE a.status = 'absent')  AS absent,
+                  COUNT(*) FILTER (WHERE a.status = 'holiday') AS holiday,
+                  COUNT(*) AS "totalDays"
+           FROM attendance a
+           JOIN students s ON s.id = a.student_id
+           JOIN batches  b ON b.id = a.batch_id
+           WHERE a.batch_id = $1 AND a.date::text LIKE $2
+           GROUP BY s.id, s.name, s.roll_number, b.name
+           ORDER BY s.roll_number, s.name`,
+          [data.batchId, `${data.month}%`],
+        );
+        rows = r;
+      } else {
+        const scope = await buildScope();
+        const allowed = await scopedBatchIds(req.user!);
+        const params: unknown[] = scope ? [`${data.month}%`, allowed] : [`${data.month}%`];
+        const r = await pool.query(
+          `SELECT s.id, s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber",
+                  b.name AS "batchName",
+                  COUNT(*) FILTER (WHERE a.status = 'present') AS present,
+                  COUNT(*) FILTER (WHERE a.status = 'late')    AS late,
+                  COUNT(*) FILTER (WHERE a.status = 'absent')  AS absent,
+                  COUNT(*) FILTER (WHERE a.status = 'holiday') AS holiday,
+                  COUNT(*) AS "totalDays"
+           FROM attendance a
+           JOIN students s ON s.id = a.student_id
+           JOIN batches  b ON b.id = a.batch_id
+           WHERE a.date::text LIKE $1 ${scope}
+           GROUP BY s.id, s.name, s.roll_number, b.name
+           ORDER BY s.roll_number, s.name`,
+          params,
+        );
+        rows = r;
+      }
+      if (!rows.rows.length) throw createError('No attendance records found for this month', 404);
+
+      const reportRows: pdfService.MonthlyReportRow[] = rows.rows.map((r) => {
+        const totalDays  = Number(r.totalDays) || 0;
+        const present    = Number(r.present)   || 0;
+        const late       = Number(r.late)      || 0;
+        const percentage = totalDays ? Math.round(((present + late) / totalDays) * 100) : 0;
+        return {
+          studentId:   Number(r.id),
+          studentName: r.studentName,
+          rollNumber:  r.rollNumber,
+          batchName:   r.batchName,
+          present,
+          late,
+          absent:      Number(r.absent)   || 0,
+          holiday:     Number(r.holiday)  || 0,
+          totalDays,
+          percentage,
+        };
+      });
+
+      pdfBuffer = await pdfService.generateMonthlyReportPdf({ month: data.month, rows: reportRows });
+      const isHtmlFallback = pdfBuffer.toString('utf-8', 0, 15).includes('<!DOCTYPE');
+      filePath  = isHtmlFallback
+        ? `attendance/monthlyreports/${data.batchId ?? 'all'}/${data.month}.html`
+        : `attendance/monthlyreports/${data.batchId ?? 'all'}/${data.month}.pdf`;
 
     } else {
       // monthly_card
@@ -354,22 +489,31 @@ export async function sendAttendanceToParents(req: Request, res: Response, next:
     storageService.assertAllowedDocumentUrl(data.documentUrl);
     const documentUrl = await storageService.resolveDownloadUrl(data.documentUrl, 3600);
 
-    // Get all parents of students in this batch
+    // All active students in the batch – those without a parent phone go to the admin number
     const studentsRes = await pool.query(
       `SELECT s.id, s.name, s.parent_phone, s.parent_name
        FROM students s
-       WHERE s.batch_id = $1 AND s.status = 'active' AND s.parent_phone IS NOT NULL`,
+       WHERE s.batch_id = $1 AND s.status = 'active'`,
       [data.batchId],
     );
 
-    if (!studentsRes.rows.length) {
-      throw createError('No students with parent phones found in this batch', 404);
-    }
+    const adminWhatsapp = await getAdminWhatsapp();
 
     const recipients = studentsRes.rows.map((s) => ({
       phone: s.parent_phone as string,
       name:  s.parent_name  as string,
     }));
+    const noContact = studentsRes.rows.filter((s) => !s.parent_phone);
+    if (noContact.length) {
+      recipients.push({
+        phone: adminWhatsapp,
+        name:  'Admin',
+      });
+    }
+
+    if (!recipients.length) {
+      throw createError('No students found in this batch', 404);
+    }
 
     const caption =
       data.messageType === 'daily_slip'
@@ -387,7 +531,16 @@ export async function sendAttendanceToParents(req: Request, res: Response, next:
     const sent   = results.filter((r) => r.success).length;
     const failed = results.filter((r) => !r.success).length;
 
-    res.json({ success: true, data: { sent, failed, results } });
+    res.json({
+      success: true,
+      data: {
+        sent,
+        failed,
+        results,
+        noContactStudents: noContact.map((s) => ({ id: s.id, name: s.name })),
+        adminFallbackUsed: noContact.length > 0,
+      },
+    });
   } catch (err) {
     next(err);
   }

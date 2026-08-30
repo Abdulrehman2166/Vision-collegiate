@@ -326,6 +326,183 @@ export function buildTestPaperHtml(
 </html>`;
 }
 
+// ─── Range / Weekly Attendance Slip ─────────────────────────────────────────────
+
+export interface RangeSlipStudent {
+  studentName: string;
+  rollNumber: string;
+  batchName: string;
+  days: Record<string, string>;
+}
+
+export interface RangeSlipData {
+  from: string;
+  to: string;
+  students: RangeSlipStudent[];
+}
+
+export function buildRangeSlipHtml(data: RangeSlipData): string {
+  const dates = [...new Set<string>(data.students.flatMap((s) => Object.keys(s.days)))].sort();
+
+  const tableRows = data.students
+    .map((s) => {
+      const count = Object.values(s.days).filter((st) => st === 'present' || st === 'late').length;
+      const cells = dates
+        .map(
+          (d) =>
+            `<td style="text-align:center">
+               ${s.days[d] ? `<span class="badge ${escapeHtml(s.days[d])}">${escapeHtml(s.days[d] === 'present' ? 'P' : s.days[d] === 'absent' ? 'A' : s.days[d] === 'late' ? 'L' : 'H')}</span>` : '<span class="na">–</span>'}
+             </td>`,
+        )
+        .join('');
+      return `<tr>
+        <td>${escapeHtml(s.rollNumber)}</td>
+        <td>${escapeHtml(s.studentName)}</td>
+        <td>${escapeHtml(s.batchName)}</td>
+        ${cells}
+        <td style="text-align:center"><strong>${count}</strong></td>
+      </tr>`;
+    })
+    .join('');
+
+  const dateHeaders = dates
+    .map((d) => `<th style="text-align:center;min-width:34px;">${escapeHtml(d.slice(8))}<div style="font-size:9px;font-weight:400;opacity:.8">${escapeHtml(d.slice(0, 7))}</div></th>`)
+    .join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; margin: 0; padding: 24px; color: #1a1a2e; background: #fff; }
+  h1 { text-align: center; font-size: 20px; margin: 0 0 2px 0; color: #0f172a; }
+  h2 { text-align: center; font-size: 13px; color: #475569; margin: 0 0 16px 0; font-weight: normal; }
+  table { width: 100%; border-collapse: collapse; margin-top: 0; }
+  th { background: #1e3a5f; color: #ffffff; padding: 8px 10px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #0f172a; }
+  tr:nth-child(even) { background: #f8fafc; }
+  tr:nth-child(odd) { background: #ffffff; }
+  .badge { display: inline-block; width: 22px; line-height: 22px; border-radius: 50%; font-size: 11px; font-weight: 700; color: #fff; text-align: center; }
+  .present { background: #16a34a; }
+  .absent  { background: #dc2626; }
+  .late    { background: #d97706; }
+  .holiday { background: #64748b; }
+  .na { color: #cbd5e1; }
+  .footer { margin-top: 20px; font-size: 10px; text-align: right; color: #94a3b8; }
+</style>
+</head>
+<body>
+  <h1>Vision Collegiate</h1>
+  <h2>Weekly Attendance – ${escapeHtml(data.from)} to ${escapeHtml(data.to)}</h2>
+  <table>
+    <thead>
+      <tr><th>Roll No.</th><th>Student Name</th><th>Batch</th>${dateHeaders}<th style="text-align:center">Present</th></tr>
+    </thead>
+    <tbody>${tableRows}</tbody>
+  </table>
+  <div class="footer">Generated on ${escapeHtml(new Date().toLocaleString('en-IN'))}</div>
+</body>
+</html>`;
+}
+
+export async function generateRangeSlipPdf(data: RangeSlipData): Promise<Buffer> {
+  logger.info(`Generating range slip for ${data.students.length} students (${data.from} → ${data.to})`);
+  const html = buildRangeSlipHtml(data);
+  try {
+    return await htmlToPdf(html);
+  } catch (err) {
+    if ((err as Error).message === 'PDF_RENDERING_UNAVAILABLE') {
+      logger.warn('Falling back to HTML for range slip');
+      return htmlToHtmlBuffer(html);
+    }
+    throw err;
+  }
+}
+
+// ─── Monthly Analysis Report ───────────────────────────────────────────────────
+
+export interface MonthlyReportRow {
+  studentId: number;
+  studentName: string;
+  rollNumber: string;
+  batchName: string;
+  present: number;
+  late: number;
+  absent: number;
+  holiday: number;
+  totalDays: number;
+  percentage: number;
+}
+
+export interface MonthlyReportData {
+  month: string;
+  rows: MonthlyReportRow[];
+}
+
+export function buildMonthlyReportHtml(data: MonthlyReportData): string {
+  const rows = data.rows
+    .map(
+      (r) => `<tr>
+        <td>${escapeHtml(r.rollNumber)}</td>
+        <td>${escapeHtml(r.studentName)}</td>
+        <td>${escapeHtml(r.batchName)}</td>
+        <td style="text-align:center">${r.present}</td>
+        <td style="text-align:center">${r.late}</td>
+        <td style="text-align:center">${r.absent}</td>
+        <td style="text-align:center">${r.holiday}</td>
+        <td style="text-align:center">${r.totalDays}</td>
+        <td style="text-align:center"><span class="pct">${r.percentage}%</span></td>
+      </tr>`,
+    )
+    .join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; margin: 0; padding: 24px; color: #1a1a2e; background: #fff; }
+  h1 { text-align: center; font-size: 20px; margin: 0 0 2px 0; color: #0f172a; }
+  h2 { text-align: center; font-size: 13px; color: #475569; margin: 0 0 16px 0; font-weight: normal; }
+  table { width: 100%; border-collapse: collapse; margin-top: 0; }
+  th { background: #1e3a5f; color: #ffffff; padding: 9px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 9px 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #0f172a; }
+  tr:nth-child(even) { background: #f8fafc; }
+  tr:nth-child(odd) { background: #ffffff; }
+  .pct { background: #eff6ff; color: #1e40af; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
+  .footer { margin-top: 20px; font-size: 10px; text-align: right; color: #94a3b8; }
+</style>
+</head>
+<body>
+  <h1>Vision Collegiate</h1>
+  <h2>Monthly Attendance Analysis – ${escapeHtml(data.month)}</h2>
+  <table>
+    <thead>
+      <tr><th>Roll No.</th><th>Student Name</th><th>Batch</th><th style="text-align:center">Present</th><th style="text-align:center">Late</th><th style="text-align:center">Absent</th><th style="text-align:center">Holiday</th><th style="text-align:center">Total</th><th style="text-align:center">%</th></tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="footer">Generated on ${escapeHtml(new Date().toLocaleString('en-IN'))}</div>
+</body>
+</html>`;
+}
+
+export async function generateMonthlyReportPdf(data: MonthlyReportData): Promise<Buffer> {
+  logger.info(`Generating monthly analysis report for ${data.month}`);
+  const html = buildMonthlyReportHtml(data);
+  try {
+    return await htmlToPdf(html);
+  } catch (err) {
+    if ((err as Error).message === 'PDF_RENDERING_UNAVAILABLE') {
+      logger.warn('Falling back to HTML for monthly analysis report');
+      return htmlToHtmlBuffer(html);
+    }
+    throw err;
+  }
+}
+
 // ─── Exported generators ──────────────────────────────────────────────────────
 
 export async function generateAttendanceSlipPdf(records: AttendanceRecord[]): Promise<Buffer> {
