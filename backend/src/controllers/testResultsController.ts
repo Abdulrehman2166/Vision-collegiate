@@ -178,8 +178,6 @@ export async function generateMonthlyAnalytics(req: Request, res: Response, next
     if (!rosterRows.length) {
       throw createError(data.studentId ? 'Student not found in scope' : 'No active students found', 404);
     }
-
-    // Tests in the month (scoped) with their results
     let tests;
     if (scopeBatchIds) {
       tests = await pool.query(
@@ -256,7 +254,7 @@ export async function generateMonthlyAnalytics(req: Request, res: Response, next
         : 'All Batches';
 
     const details: pdfService.AnalyticsStudentDetail[] = rosterRows
-      .filter((r) => byStudent.has(Number(r.id)) || data.studentId)
+      .filter((r) => byStudent.has(Number(r.id)))
       .map((r) => {
         const detail = buildDetail(Number(r.id), r.studentName, r.rollNumber, Number(r.batchId), r.batchName, byStudent.get(Number(r.id)) ?? []);
         detail.grade = r.grade;
@@ -265,7 +263,7 @@ export async function generateMonthlyAnalytics(req: Request, res: Response, next
       });
 
     if (!details.length) {
-      throw createError('No test results recorded for this month', 404);
+      throw createError(data.studentId ? 'No test results recorded for this student in this month' : 'No test results recorded for this month', 404);
     }
 
     // Rank within scope by overall percentage (only among those with results)
