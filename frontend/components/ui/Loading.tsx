@@ -1,16 +1,18 @@
 import { clsx } from 'clsx';
 import Image from 'next/image';
 
-interface SpinnerProps { size?: 'sm'|'md'|'lg'; className?: string; }
+interface SpinnerProps { size?: 'sm'|'md'|'lg'; className?: string; light?: boolean; }
 const sizeMap = { sm: 'w-4 h-4', md: 'w-6 h-6', lg: 'w-10 h-10' };
 
-export function Spinner({ size = 'md', className }: SpinnerProps) {
+export function Spinner({ size = 'md', className, light }: SpinnerProps) {
   return (
     <div
       role="status" aria-label="Loading"
       className={clsx('rounded-full animate-spin', sizeMap[size], className)}
       style={{
-        background: 'conic-gradient(from 0deg, transparent 0%, #6366f1 80%, transparent 100%)',
+        background: light
+          ? 'conic-gradient(from 0deg, transparent 0%, #ffffff 80%, transparent 100%)'
+          : 'conic-gradient(from 0deg, transparent 0%, #6366f1 80%, transparent 100%)',
         WebkitMask: 'radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2.5px))',
         mask:       'radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2.5px))',
       }}

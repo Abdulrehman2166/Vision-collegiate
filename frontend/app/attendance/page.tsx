@@ -5,10 +5,11 @@ import { AppShell } from '@/components/layout/AppShell';
 import { SectionLoader } from '@/components/ui/Loading';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
-import { CheckCircle2, XCircle, Clock, Send, FileDown, CalendarDays, X, MessageCircle, CalendarRange, BarChart3 } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, FileDown, CalendarDays, X, MessageCircle, CalendarRange, BarChart3, FileSpreadsheet } from 'lucide-react';
 import { format } from 'date-fns';
 import api, { type ApiResponse, type Batch, type AttendanceRecord, type Student } from '@/utils/api';
 import { getWorkingDate } from '@/utils/dates';
+import { Spinner } from '@/components/ui/Loading';
 
 type Status = 'present' | 'absent' | 'late' | 'holiday';
 
@@ -46,6 +47,8 @@ export default function AttendancePage() {
   const [reportMonth,  setReportMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [adminPhone,   setAdminPhone] = useState('03122621979');
   const [pdfTitle,     setPdfTitle]   = useState('Attendance Slip');
+  const [generating,   setGenerating] = useState<'daily' | 'range' | 'monthly' | null>(null);
+  const [sharing,      setSharing]    = useState(false);
 
   useEffect(() => {
     getWorkingDate()
@@ -138,6 +141,8 @@ export default function AttendancePage() {
   }
 
   async function generatePdf() {
+    if (generating) return;
+    setGenerating('daily');
     try {
       const isAll = !batchId || batchId === 'all';
       const res = await api.post<ApiResponse<{ url: string }>>('/attendance/reports/generate-pdf', {
@@ -158,14 +163,20 @@ export default function AttendancePage() {
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
       toast.error(message ?? 'PDF generation failed');
-    }
+    } finally { setGenerating(null); }
   }
 
   async function generateRangePdf() {
+    if (generating) return;
     if (!rangeFrom || !rangeTo) {
       toast.error('Select both From and To dates for the weekly PDF');
       return;
     }
+    if (rangeFrom > rangeTo) {
+      toast.error('From date must be on or before the To date');
+      return;
+    }
+    setGenerating('range');
     try {
       const isAll = !batchId || batchId === 'all';
       const res = await api.post<ApiResponse<{ url: string }>>('/attendance/reports/generate-pdf', {
@@ -187,14 +198,16 @@ export default function AttendancePage() {
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
       toast.error(message ?? 'PDF generation failed');
-    }
+    } finally { setGenerating(null); }
   }
 
   async function generateMonthlyReport() {
+    if (generating) return;
     if (!reportMonth) {
       toast.error('Select a month for the monthly report');
       return;
     }
+    setGenerating('monthly');
     try {
       const isAll = !batchId || batchId === 'all';
       const res = await api.post<ApiResponse<{ url: string }>>('/attendance/reports/generate-pdf', {
@@ -215,14 +228,18 @@ export default function AttendancePage() {
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
       toast.error(message ?? 'PDF generation failed');
-    }
+    } finally { setGenerating(null); }
   }
 
-  function sendWhatsappToParents() {
+  async function sendWhatsappToParents() {
+    if (sharing) return;
+    setSharing(true);
+    await new Promise((r) => setTimeout(r, 300)); // allow spinner to render
     const parentsWithPhone = grid.filter((r) => r.parentPhone && r.parentPhone.trim());
     const withoutPhone     = grid.filter((r) => !r.parentPhone || !r.parentPhone.trim());
     if (!parentsWithPhone.length && !withoutPhone.length) {
       toast.error('No students found to share');
+      setSharing(false);
       return;
     }
     if (parentsWithPhone.length === 0 && withoutPhone.length > 0) {
@@ -231,9 +248,10 @@ export default function AttendancePage() {
       const batchName = batches.find((b) => String(b.id) === batchId)?.name ?? '';
       const msg = `Dear Admin, the following students have no parent contact on file (batch: ${batchName || 'All'}, date: ${date}): ${names}. - Vision Collegiate`;
       const admin = adminPhone.replace(/[^0-9]/g, '');
-      if (admin.length < 7) { toast.error('Invalid admin WhatsApp number'); return; }
+      if (admin.length < 7) { toast.error('Invalid admin WhatsApp number'); setSharing(false); return; }
       window.open(`https://wa.me/${admin}?text=${encodeURIComponent(msg)}`, '_blank');
       toast.success('Opening WhatsApp for admin');
+      setSharing(false);
       return;
     }
 
@@ -253,19 +271,22 @@ export default function AttendancePage() {
     }
 
     // Students without a contact -> the admin receives the update instead
+    let adminOpened = 0;
     if (withoutPhone.length) {
       const names = withoutPhone.map((r) => r.studentName).join(', ');
       const adminFlash = `Dear Admin, students without parent contacts on ${date} (${batchName || 'All'}): ${names}. - Vision Collegiate`;
       const admin = adminPhone.replace(/[^0-9]/g, '');
       if (admin.length >= 7) {
         window.open(`https://wa.me/${admin}?text=${encodeURIComponent(adminFlash)}`, '_blank');
+        adminOpened = 1;
       }
     }
 
-    const summary = withoutPhone.length
+    const summary = adminOpened
       ? `Opening WhatsApp for ${opened} parents (+1 admin for ${withoutPhone.length} without contacts)`
       : `Opening WhatsApp for ${opened} parents`;
     toast.success(summary);
+    setSharing(false);
   }
 
   const present  = grid.filter((r) => r.status === 'present').length;
@@ -308,38 +329,88 @@ export default function AttendancePage() {
         )}
       </div>
 
-      {/* Report / history controls */}
-      <div className="card p-4 mb-5 flex flex-col lg:flex-row lg:items-end gap-3">
-        <div>
-          <label className="label">Weekly / Range PDF – From</label>
-          <input type="date" className="input w-40" value={rangeFrom} onChange={(e) => setRangeFrom(e.target.value)} />
+      {/* Reports & history */}
+      <div className="card p-4 sm:p-5 mb-5">
+        <div className="flex items-center gap-2 mb-4">
+          <FileSpreadsheet className="w-5 h-5 text-indigo-400" />
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-wide">REPORTS &amp; HISTORY</h2>
+          <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto hidden sm:inline">
+            Generate slips for a week or an entire month. The daily slip button is below the grid.
+          </span>
         </div>
-        <div>
-          <label className="label">To</label>
-          <input type="date" className="input w-40" value={rangeTo} onChange={(e) => setRangeTo(e.target.value)} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Weekly / Range */}
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-3">
+            <div className="flex items-center gap-2 text-slate-300">
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center">
+                <CalendarRange className="w-4 h-4 text-indigo-300" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Weekly / Range</p>
+                <p className="text-xs text-slate-500">Multi-day attendance for the selected batch</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="label">From</label>
+                <input type="date" className="input w-full" value={rangeFrom} onChange={(e) => setRangeFrom(e.target.value)} />
+              </div>
+              <div>
+                <label className="label">To</label>
+                <input type="date" className="input w-full" value={rangeTo} onChange={(e) => setRangeTo(e.target.value)} />
+              </div>
+            </div>
+            <button
+              onClick={generateRangePdf}
+              disabled={generating !== null}
+              className="btn-primary w-full"
+            >
+              {generating === 'range' ? <><Spinner size="sm" light /> Generating…</> : <><CalendarRange className="w-4 h-4" /> Generate Week PDF</>}
+            </button>
+          </div>
+
+          {/* Monthly */}
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-3">
+            <div className="flex items-center gap-2 text-slate-300">
+              <div className="w-8 h-8 rounded-lg bg-violet-500/15 border border-violet-500/25 flex items-center justify-center">
+                <BarChart3 className="w-4 h-4 text-violet-300" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Monthly Analysis</p>
+                <p className="text-xs text-slate-500">Complete month report (P/L/A/H + %)</p>
+              </div>
+            </div>
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <label className="label">Month</label>
+                <input type="month" className="input w-full" value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} />
+              </div>
+            </div>
+            <button
+              onClick={generateMonthlyReport}
+              disabled={generating !== null}
+              className="btn-primary w-full"
+            >
+              {generating === 'monthly' ? <><Spinner size="sm" light /> Generating…</> : <><BarChart3 className="w-4 h-4" /> Generate Report</>}
+            </button>
+          </div>
         </div>
-        <button onClick={generateRangePdf} className="btn-secondary">
-          <CalendarRange className="w-4 h-4" /> Weekly / Range PDF
-        </button>
-        <div className="lg:ml-auto">
-          <label className="label">Monthly Analysis</label>
-          <input type="month" className="input w-40" value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} />
-        </div>
-        <button onClick={generateMonthlyReport} className="btn-secondary">
-          <BarChart3 className="w-4 h-4" /> Monthly Report
-        </button>
       </div>
 
       {/* Bulk actions */}
       {grid.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          <span className="text-sm text-slate-500 dark:text-slate-400 self-center">Mark all as:</span>
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="text-sm text-slate-500 dark:text-slate-400 self-center mr-1">Mark all as:</span>
           {statuses.map((s) => (
             <button
               key={s}
               onClick={() => markAll(s)}
-              className={clsx('px-3 py-1 rounded-lg text-xs font-medium border transition-colors', statusConfig[s].cls)}
+              className={clsx(
+                'h-9 px-4 rounded-xl text-xs font-bold border transition-all active:scale-95 hover:brightness-110 inline-flex items-center gap-1.5',
+                statusConfig[s].cls,
+              )}
             >
+              {statusConfig[s].icon}
               {s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
@@ -354,11 +425,11 @@ export default function AttendancePage() {
       ) : (
         <>
           {/* Summary strip */}
-          <div className="flex gap-4 mb-4 text-sm">
-            <span className="text-green-600 dark:text-green-400 font-medium">✓ Present: {present}</span>
-            <span className="text-red-600   dark:text-red-400   font-medium">✗ Absent: {absent}</span>
-            <span className="text-yellow-600 dark:text-yellow-400 font-medium">◷ Late: {late}</span>
-            <span className="text-slate-500 dark:text-slate-400">Total: {total}</span>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <span className="badge-green text-xs px-3 py-1.5">✓ Present: {present}</span>
+            <span className="badge-red   text-xs px-3 py-1.5">✗ Absent: {absent}</span>
+            <span className="badge-yellow text-xs px-3 py-1.5">◷ Late: {late}</span>
+            <span className="badge-gray   text-xs px-3 py-1.5">Total: {total}</span>
           </div>
 
           {/* Student grid */}
@@ -391,20 +462,20 @@ export default function AttendancePage() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 items-center">
             <button onClick={submitAttendance} disabled={submitting} className="btn-primary">
-              {submitting ? 'Saving…' : <><CheckCircle2 className="w-4 h-4" /> Save Attendance</>}
+              {submitting ? <><Spinner size="sm" light /> Saving…</> : <><CheckCircle2 className="w-4 h-4" /> Save Attendance</>}
             </button>
-            <button onClick={generatePdf} className="btn-secondary">
-              <FileDown className="w-4 h-4" /> {(!batchId || batchId === 'all') ? 'Generate All Students PDF' : 'Generate PDF Slip'}
+            <button onClick={generatePdf} disabled={generating !== null} className="btn-secondary">
+              {generating === 'daily' ? <><Spinner size="sm" /> Generating…</> : <><FileDown className="w-4 h-4" /> {(!batchId || batchId === 'all') ? 'Generate All Students PDF' : 'Generate PDF Slip'}</>}
             </button>
             {(pdfUrl || pdfContent) && (
               <button onClick={() => setShowPdfModal(true)} className="btn-secondary">
                 <FileDown className="w-4 h-4" /> View Slip
               </button>
             )}
-            <button onClick={sendWhatsappToParents} className="btn-secondary">
-              <MessageCircle className="w-4 h-4" /> Share on WhatsApp
+            <button onClick={sendWhatsappToParents} disabled={sharing || grid.length === 0} className="btn-secondary">
+              {sharing ? <><Spinner size="sm" /> Sharing…</> : <><MessageCircle className="w-4 h-4" /> Share on WhatsApp</>}
             </button>
           </div>
         </>
