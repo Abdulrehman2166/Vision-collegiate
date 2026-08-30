@@ -64,7 +64,7 @@ export async function resolveChromiumExecutable(): Promise<string | undefined> {
   return candidates.find((p) => existsSync(p));
 }
 
-async function htmlToPdf(html: string): Promise<Buffer> {
+async function htmlToPdf(html: string, opts?: { landscape?: boolean }): Promise<Buffer> {
   // Try puppeteer first
   let browser: any = null;
   try {
@@ -90,8 +90,9 @@ async function htmlToPdf(html: string): Promise<Buffer> {
     await page.setContent(html, { waitUntil: 'networkidle0', timeout: 20000 });
     const pdf = await page.pdf({
       format: 'A4',
+      landscape: opts?.landscape,
       printBackground: true,
-      margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' },
+      margin: { top: '16mm', right: '12mm', bottom: '16mm', left: '12mm' },
     });
     return Buffer.from(pdf);
   } catch (err) {
@@ -341,18 +342,41 @@ export interface RangeSlipData {
   students: RangeSlipStudent[];
 }
 
+function enumerateDates(from: string, to: string): string[] {
+  const out: string[] = [];
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const [ty, tm, td] = to.split('-').map(Number);
+  const start = new Date(Date.UTC(fy, fm - 1, fd));
+  const end   = new Date(Date.UTC(ty, tm - 1, td));
+  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    out.push(`${y}-${m}-${day}`);
+  }
+  return out;
+}
+
+function formatDateShort(dateStr: string): { day: string; month: string } {
+  const [, m, d] = dateStr.split('-');
+  const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return { day: d, month: monthNames[Number(m)] };
+}
+
 export function buildRangeSlipHtml(data: RangeSlipData): string {
-  const dates = [...new Set<string>(data.students.flatMap((s) => Object.keys(s.days)))].sort();
+  const dates = enumerateDates(data.from, data.to);
 
   const tableRows = data.students
     .map((s) => {
       const count = Object.values(s.days).filter((st) => st === 'present' || st === 'late').length;
       const cells = dates
         .map(
-          (d) =>
-            `<td style="text-align:center">
-               ${s.days[d] ? `<span class="badge ${escapeHtml(s.days[d])}">${escapeHtml(s.days[d] === 'present' ? 'P' : s.days[d] === 'absent' ? 'A' : s.days[d] === 'late' ? 'L' : 'H')}</span>` : '<span class="na">–</span>'}
-             </td>`,
+          (d) => {
+            const st = s.days[d];
+            return `<td style="text-align:center">
+               ${st ? `<span class="badge ${escapeHtml(st)}">${st === 'present' ? 'P' : st === 'absent' ? 'A' : st === 'late' ? 'L' : 'H'}</span>` : '<span class="na">–</span>'}
+             </td>`;
+          },
         )
         .join('');
       return `<tr>
@@ -366,7 +390,10 @@ export function buildRangeSlipHtml(data: RangeSlipData): string {
     .join('');
 
   const dateHeaders = dates
-    .map((d) => `<th style="text-align:center;min-width:34px;">${escapeHtml(d.slice(8))}<div style="font-size:9px;font-weight:400;opacity:.8">${escapeHtml(d.slice(0, 7))}</div></th>`)
+    .map((d) => {
+      const { day, month } = formatDateShort(d);
+      return `<th style="text-align:center;min-width:30px;">${day}<div style="font-size:9px;font-weight:400;opacity:.8">${month}</div></th>`;
+    })
     .join('');
 
   return `<!DOCTYPE html>
@@ -375,33 +402,42 @@ export function buildRangeSlipHtml(data: RangeSlipData): string {
 <meta charset="UTF-8">
 <style>
   * { box-sizing: border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; margin: 0; padding: 24px; color: #1a1a2e; background: #fff; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; margin: 0; padding: 20px; color: #1a1a2e; background: #fff; }
   h1 { text-align: center; font-size: 20px; margin: 0 0 2px 0; color: #0f172a; }
   h2 { text-align: center; font-size: 13px; color: #475569; margin: 0 0 16px 0; font-weight: normal; }
-  table { width: 100%; border-collapse: collapse; margin-top: 0; }
-  th { background: #1e3a5f; color: #ffffff; padding: 8px 10px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-  td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #0f172a; }
+  table { width: 100%; border-collapse: collapse; margin-top: 0; table-layout: fixed; }
+  th { background: #1e3a5f; color: #ffffff; padding: 6px 6px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; }
+  td { padding: 6px 6px; border-bottom: 1px solid #e2e8f0; font-size: 11px; color: #0f172a; word-break: break-word; }
   tr:nth-child(even) { background: #f8fafc; }
   tr:nth-child(odd) { background: #ffffff; }
-  .badge { display: inline-block; width: 22px; line-height: 22px; border-radius: 50%; font-size: 11px; font-weight: 700; color: #fff; text-align: center; }
+  .col-roll { width: 7%; }
+  .col-name { width: 20%; }
+  .col-batch { width: 13%; }
+  .col-count { width: 7%; }
+  .badge { display: inline-block; width: 20px; line-height: 20px; border-radius: 50%; font-size: 10px; font-weight: 700; color: #fff; text-align: center; }
   .present { background: #16a34a; }
   .absent  { background: #dc2626; }
   .late    { background: #d97706; }
   .holiday { background: #64748b; }
   .na { color: #cbd5e1; }
-  .footer { margin-top: 20px; font-size: 10px; text-align: right; color: #94a3b8; }
+  .footer { margin-top: 14px; font-size: 10px; text-align: right; color: #94a3b8; }
 </style>
 </head>
 <body>
   <h1>Vision Collegiate</h1>
   <h2>Weekly Attendance – ${escapeHtml(data.from)} to ${escapeHtml(data.to)}</h2>
   <table>
+    <colgroup>
+      <col class="col-roll"><col class="col-name"><col class="col-batch">
+      ${dates.map(() => '<col style="width:auto;">').join('')}
+      <col class="col-count">
+    </colgroup>
     <thead>
-      <tr><th>Roll No.</th><th>Student Name</th><th>Batch</th>${dateHeaders}<th style="text-align:center">Present</th></tr>
+      <tr><th>Roll</th><th>Student Name</th><th>Batch</th>${dateHeaders}<th style="text-align:center">Present</th></tr>
     </thead>
     <tbody>${tableRows}</tbody>
   </table>
-  <div class="footer">Generated on ${escapeHtml(new Date().toLocaleString('en-IN'))}</div>
+  <div class="footer">P = Present · A = Absent · L = Late · H = Holiday · – = Not marked · Generated on ${escapeHtml(new Date().toLocaleString('en-IN'))}</div>
 </body>
 </html>`;
 }
@@ -410,7 +446,7 @@ export async function generateRangeSlipPdf(data: RangeSlipData): Promise<Buffer>
   logger.info(`Generating range slip for ${data.students.length} students (${data.from} → ${data.to})`);
   const html = buildRangeSlipHtml(data);
   try {
-    return await htmlToPdf(html);
+    return await htmlToPdf(html, { landscape: true });
   } catch (err) {
     if ((err as Error).message === 'PDF_RENDERING_UNAVAILABLE') {
       logger.warn('Falling back to HTML for range slip');
@@ -493,7 +529,7 @@ export async function generateMonthlyReportPdf(data: MonthlyReportData): Promise
   logger.info(`Generating monthly analysis report for ${data.month}`);
   const html = buildMonthlyReportHtml(data);
   try {
-    return await htmlToPdf(html);
+    return await htmlToPdf(html, { landscape: true });
   } catch (err) {
     if ((err as Error).message === 'PDF_RENDERING_UNAVAILABLE') {
       logger.warn('Falling back to HTML for monthly analysis report');

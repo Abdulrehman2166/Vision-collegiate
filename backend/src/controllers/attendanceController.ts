@@ -234,32 +234,35 @@ export async function generateAttendancePDF(req: Request, res: Response, _next: 
           `SELECT s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber",
                   a.status, a.date::text AS date,
                   b.name AS "batchName"
-           FROM attendance a
-           JOIN students s ON s.id = a.student_id
-           JOIN batches  b ON b.id = a.batch_id
-           WHERE a.batch_id = $1 AND a.date BETWEEN $2 AND $3
+           FROM students s
+           JOIN batches  b ON b.id = s.batch_id
+           LEFT JOIN attendance a ON a.student_id = s.id AND a.batch_id = $1 AND a.date BETWEEN $2 AND $3
+           WHERE s.batch_id = $1 AND s.status = 'active'
            ORDER BY s.roll_number, s.name, a.date`,
           [data.batchId, data.from, data.to],
         );
         rows = r;
       } else {
-        const scope = await buildScope();
         const allowed = await scopedBatchIds(req.user!);
-        const params: unknown[] = scope ? [data.from, data.to, allowed] : [data.from, data.to];
+        if (req.user!.role === 'teacher' && !allowed?.length) {
+          throw createError('No batches assigned to you', 403);
+        }
+        const scope   = allowed?.length ? 'AND s.batch_id = ANY($3::int[])' : '';
+        const params: unknown[] = allowed?.length ? [data.from, data.to, allowed] : [data.from, data.to];
         const r = await pool.query(
           `SELECT s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber",
                   a.status, a.date::text AS date,
                   b.name AS "batchName"
-           FROM attendance a
-           JOIN students s ON s.id = a.student_id
-           JOIN batches  b ON b.id = a.batch_id
-           WHERE a.date BETWEEN $1 AND $2 ${scope}
+           FROM students s
+           JOIN batches  b ON b.id = s.batch_id
+           LEFT JOIN attendance a ON a.student_id = s.id AND a.date BETWEEN $1 AND $2
+           WHERE s.status = 'active' ${scope}
            ORDER BY s.roll_number, s.name, a.date`,
           params,
         );
         rows = r;
       }
-      if (!rows.rows.length) throw createError('No attendance records found for this range', 404);
+      if (!rows.rows.length) throw createError('No active students found for this range', 404);
 
       const students = new Map<string, pdfService.RangeSlipStudent>();
       for (const r of rows.rows) {
@@ -267,7 +270,7 @@ export async function generateAttendancePDF(req: Request, res: Response, _next: 
         if (!students.has(key)) {
           students.set(key, { studentName: r.studentName, rollNumber: r.rollNumber, batchName: r.batchName, days: {} });
         }
-        students.get(key)!.days[r.date as string] = r.status as string;
+        if (r.date) students.get(key)!.days[r.date as string] = r.status as string;
       }
 
       pdfBuffer = await pdfService.generateRangeSlipPdf({
