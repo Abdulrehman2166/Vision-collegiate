@@ -123,6 +123,22 @@ CREATE TABLE IF NOT EXISTS test_schedules (
   created_at   TIMESTAMP   NOT NULL DEFAULT now()
 );
 
+-- Marks / results for tests (one row per student per test)
+CREATE TABLE IF NOT EXISTS test_results (
+  id             SERIAL PRIMARY KEY,
+  test_id        INTEGER     NOT NULL REFERENCES tests(id)     ON DELETE CASCADE,
+  student_id     INTEGER     NOT NULL REFERENCES students(id)  ON DELETE CASCADE,
+  marks_obtained NUMERIC(6,2) NOT NULL,
+  recorded_by    INTEGER     REFERENCES users(id) ON DELETE SET NULL,
+  remarks        TEXT,
+  created_at     TIMESTAMP   NOT NULL DEFAULT now(),
+  updated_at     TIMESTAMP   NOT NULL DEFAULT now(),
+  UNIQUE (test_id, student_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_test_results_test    ON test_results(test_id);
+CREATE INDEX IF NOT EXISTS idx_test_results_student ON test_results(student_id);
+
 -- ─────────────────────────────────────────────
 -- WHATSAPP LOGS
 -- ─────────────────────────────────────────────
@@ -177,6 +193,12 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_timestamp_whatsapp_logs') THEN
     CREATE TRIGGER set_timestamp_whatsapp_logs
       BEFORE UPDATE ON whatsapp_logs
+      FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_timestamp_test_results') THEN
+    CREATE TRIGGER set_timestamp_test_results
+      BEFORE UPDATE ON test_results
       FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
   END IF;
 END;

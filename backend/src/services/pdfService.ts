@@ -586,3 +586,257 @@ export async function generateTestPaperPdf(
     throw err;
   }
 }
+
+// ─── Monthly Test Analytics ───────────────────────────────────────────────────
+
+export interface AnalyticsTestResult {
+  date: string;           // YYYY-MM-DD
+  week: number;           // 1-4 (week of month)
+  subject: string;
+  title: string;
+  marksObtained: number;
+  totalMarks: number;
+  percentage: number;     // rounded to 1 decimal
+}
+
+export interface AnalyticsSubjectAverage {
+  subject: string;
+  count: number;
+  percentage: number;     // rounded to 1 decimal
+}
+
+export interface AnalyticsStudentSummary {
+  studentId: number;
+  studentName: string;
+  rollNumber: string;
+  batchId: number;
+  batchName: string;
+  rank: number;                       // 1 = top of the month in scope
+  testsAppeared: number;
+  overallPercentage: number;          // rounded to 1 decimal
+  weekAverages: (number | null)[];    // index 0-3 = week 1-4
+  bestSubject: string;
+  weakSubject: string;
+  grandTestPercentage: number | null; // % in Week 4 Grand Test if present
+}
+
+export interface AnalyticsStudentDetail extends AnalyticsStudentSummary {
+  results: AnalyticsTestResult[];
+  subjectAverages: AnalyticsSubjectAverage[];
+}
+
+export interface MonthlyAnalyticsData {
+  month: string;
+  scopeLabel: string;   // batch name or 'All Batches'
+  students: AnalyticsStudentDetail[];
+}
+
+export function buildMonthlyAnalyticsHtml(data: MonthlyAnalyticsData): string {
+  const rows = data.students
+    .map((s) => {
+      const week = (i: number) =>
+        s.weekAverages[i] == null ? '—' : `${s.weekAverages[i].toFixed(1)}%`;
+      const progress =
+        s.weekAverages[3] != null && s.weekAverages[0] != null
+          ? s.weekAverages[3] > s.weekAverages[0] ? '▲ Improving' : s.weekAverages[3] < s.weekAverages[0] ? '▼ Declining' : '◆ Consistent'
+          : '—';
+      return `<tr>
+        <td style="text-align:center"><span class="rank">#${s.rank}</span></td>
+        <td>${escapeHtml(s.rollNumber)}</td>
+        <td>${escapeHtml(s.studentName)}</td>
+        <td style="text-align:center">${s.testsAppeared}</td>
+        <td style="text-align:center"><span class="pct strong">${s.overallPercentage.toFixed(1)}%</span></td>
+        <td style="text-align:center">${week(0)}</td>
+        <td style="text-align:center">${week(1)}</td>
+        <td style="text-align:center">${week(2)}</td>
+        <td style="text-align:center">${week(3)}</td>
+        <td>${escapeHtml(s.bestSubject)}</td>
+        <td>${escapeHtml(s.weakSubject)}</td>
+        <td style="text-align:center">${progress}</td>
+      </tr>`;
+    })
+    .join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; margin: 0; padding: 20px; color: #1a1a2e; background: #fff; }
+  h1 { text-align: center; font-size: 20px; margin: 0 0 2px 0; color: #0f172a; }
+  h2 { text-align: center; font-size: 13px; color: #475569; margin: 0 0 14px 0; font-weight: normal; }
+  table { width: 100%; border-collapse: collapse; margin-top: 0; }
+  th { background: #1e3a5f; color: #ffffff; padding: 8px 8px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; }
+  td { padding: 8px 8px; border-bottom: 1px solid #e2e8f0; font-size: 11px; color: #0f172a; }
+  tr:nth-child(even) { background: #f8fafc; }
+  tr:nth-child(odd) { background: #ffffff; }
+  .pct { background: #eff6ff; color: #1e40af; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
+  .pct.strong { background: #dcfce7; color: #15803d; }
+  .rank { background: #fef9c3; color: #a16207; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
+  .top { background: #e0e7ff !important; }
+  .footer { margin-top: 16px; font-size: 10px; text-align: right; color: #94a3b8; }
+  .legend { margin-top: 12px; font-size: 10px; color: #64748b; }
+</style>
+</head>
+<body>
+  <h1>Vision Collegiate</h1>
+  <h2>Monthly Test Analytics – ${escapeHtml(data.month)} · ${escapeHtml(data.scopeLabel)}</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="text-align:center">Rank</th><th>Roll No.</th><th>Student Name</th>
+        <th style="text-align:center">Tests</th><th style="text-align:center">Overall</th>
+        <th style="text-align:center">Week 1</th><th style="text-align:center">Week 2</th>
+        <th style="text-align:center">Week 3</th><th style="text-align:center">Week 4</th>
+        <th>Best Subject</th><th>Weak Subject</th><th style="text-align:center">Trend</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="legend">% = marks obtained ÷ total marks per subject test, averaged by week.</div>
+  <div class="footer">Generated on ${escapeHtml(new Date().toLocaleString('en-IN'))}</div>
+</body>
+</html>`;
+}
+
+export async function generateMonthlyAnalyticsPdf(data: MonthlyAnalyticsData): Promise<Buffer> {
+  logger.info(`Generating monthly test analytics for ${data.month} (${data.students.length} students)`);
+  const html = buildMonthlyAnalyticsHtml(data);
+  try {
+    return await htmlToPdf(html, { landscape: true });
+  } catch (err) {
+    if ((err as Error).message === 'PDF_RENDERING_UNAVAILABLE') {
+      logger.warn('Falling back to HTML for monthly analytics');
+      return htmlToHtmlBuffer(html);
+    }
+    throw err;
+  }
+}
+
+export function buildStudentAnalyticsHtml(data: AnalyticsStudentDetail & { month: string; scopeLabel: string }): string {
+  const testRows = data.results
+    .map((r) => {
+      const isGrand = /grand/i.test(r.title);
+      const pctCls = r.percentage >= 80 ? 'good' : r.percentage >= 60 ? 'ok' : r.percentage >= 40 ? 'warn' : 'poor';
+      return `<tr class="${isGrand ? 'grand' : ''}">
+        <td>${escapeHtml(r.date)}</td>
+        <td style="text-align:center">Week ${r.week}</td>
+        <td>${escapeHtml(r.subject)}</td>
+        <td style="text-align:center">${escapeHtml(r.title)}${isGrand ? ' <span class="tag">Grand</span>' : ''}</td>
+        <td style="text-align:center">${r.marksObtained} / ${r.totalMarks}</td>
+        <td style="text-align:center"><span class="pct ${pctCls}">${r.percentage.toFixed(1)}%</span></td>
+      </tr>`;
+    })
+    .join('');
+
+  const subjectRows = data.subjectAverages
+    .map((s) => `<tr>
+      <td>${escapeHtml(s.subject)}</td>
+      <td style="text-align:center">${s.count}</td>
+      <td style="text-align:center"><span class="pct">${s.percentage.toFixed(1)}%</span></td>
+    </tr>`)
+    .join('');
+
+  const weekBlocks = data.weekAverages
+    .map((w, i) => {
+      const pct = w == null ? '—' : `${w.toFixed(1)}%`;
+      return `<div class="week"><span class="week-label">Week ${i + 1}</span><span class="week-val">${pct}</span></div>`;
+    })
+    .join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; padding: 24px; color: #1a1a2e; background: #fff; }
+  h1 { text-align: center; font-size: 20px; margin: 0 0 2px 0; color: #0f172a; }
+  h2 { text-align: center; font-size: 13px; color: #475569; margin: 0 0 16px 0; font-weight: normal; }
+  .info { font-size: 13px; color: #334155; margin-bottom: 4px; line-height: 1.8; }
+  .info strong { color: #0f172a; }
+  .summary { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
+  .card { flex: 1 1 150px; padding: 10px 12px; border-radius: 10px; border: 1px solid #cbd5e1; text-align: center; }
+  .card .v { font-size: 18px; font-weight: 800; color: #1e3a5f; }
+  .card .k { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-top: 2px; }
+  .weeks { display: flex; gap: 8px; margin: 14px 0; }
+  .week { flex: 1; padding: 10px; text-align: center; border-radius: 10px; background: #f1f5f9; border: 1px solid #e2e8f0; }
+  .week-label { display: block; font-size: 10px; text-transform: uppercase; color: #64748b; }
+  .week-val { font-size: 16px; font-weight: 700; color: #0f172a; }
+  h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: #1e3a5f; margin: 18px 0 8px 0; border-bottom: 2px solid #1e3a5f; padding-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #1e3a5f; color: #ffffff; padding: 9px 10px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+  td { padding: 9px 10px; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #0f172a; }
+  tr:nth-child(even) { background: #f8fafc; }
+  .grand { background: #fef9c3 !important; }
+  .tag { background: #d97706; color: #fff; font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 8px; margin-left: 4px; }
+  .pct { padding: 2px 8px; border-radius: 12px; font-weight: 700; }
+  .good { background: #dcfce7; color: #15803d; }
+  .ok   { background: #dbeafe; color: #1d4ed8; }
+  .warn { background: #fed7aa; color: #c2410c; }
+  .poor { background: #fee2e2; color: #b91c1c; }
+  .flags { font-size: 13px; margin: 10px 0; }
+  .flags span { display: inline-block; margin-right: 16px; padding: 6px 12px; border-radius: 8px; font-weight: 700; }
+  .flag-best { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+  .flag-weak { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+  .footer { margin-top: 20px; font-size: 10px; text-align: right; color: #94a3b8; }
+</style>
+</head>
+<body>
+  <h1>Vision Collegiate</h1>
+  <h2>Monthly Test Analytics – ${escapeHtml(data.month)}</h2>
+  <div class="info">
+    <strong>Name:</strong> ${escapeHtml(data.studentName)} &nbsp;&bull;&nbsp;
+    <strong>Roll No.:</strong> ${escapeHtml(data.rollNumber)} &nbsp;&bull;&nbsp;
+    <strong>Batch:</strong> ${escapeHtml(data.batchName)} &nbsp;&bull;&nbsp;
+    <strong>Rank:</strong> #${data.rank} of ${escapeHtml(data.scopeLabel)}
+  </div>
+
+  <div class="summary">
+    <div class="card"><div class="v">${data.overallPercentage.toFixed(1)}%</div><div class="k">Overall Average</div></div>
+    <div class="card"><div class="v">${data.testsAppeared}</div><div class="k">Tests Appeared</div></div>
+    <div class="card"><div class="v">${data.grandTestPercentage == null ? '—' : data.grandTestPercentage.toFixed(1) + '%'}</div><div class="k">Grand Test</div></div>
+    <div class="card"><div class="v">#${data.rank}</div><div class="k">Class Position</div></div>
+  </div>
+
+  <h3>Weekly Trend</h3>
+  <div class="weeks">${weekBlocks}</div>
+
+  <div class="flags">
+    ${data.bestSubject ? `<span class="flag-best">★ Best Subject: ${escapeHtml(data.bestSubject)}</span>` : ''}
+    ${data.weakSubject ? `<span class="flag-weak">⚠ Weak Subject: ${escapeHtml(data.weakSubject)}</span>` : ''}
+  </div>
+
+  <h3>Subject-Wise Performance</h3>
+  <table>
+    <thead><tr><th>Subject</th><th style="text-align:center">Tests</th><th style="text-align:center">Average</th></tr></thead>
+    <tbody>${subjectRows || '<tr><td colspan="3" style="text-align:center;color:#94a3b8">No results recorded for this month.</td></tr>'}</tbody>
+  </table>
+
+  <h3>Test Results</h3>
+  <table>
+    <thead><tr><th>Date</th><th style="text-align:center">Week</th><th>Subject</th><th>Test</th><th style="text-align:center">Marks</th><th style="text-align:center">%</th></tr></thead>
+    <tbody>${testRows || '<tr><td colspan="6" style="text-align:center;color:#94a3b8">No results recorded for this month.</td></tr>'}</tbody>
+  </table>
+
+  <div class="footer">Generated on ${escapeHtml(new Date().toLocaleString('en-IN'))}</div>
+</body>
+</html>`;
+}
+
+export async function generateStudentAnalyticsPdf(
+  data: AnalyticsStudentDetail & { month: string; scopeLabel: string },
+): Promise<Buffer> {
+  logger.info(`Generating student test analytics for ${data.studentName} (${data.month})`);
+  const html = buildStudentAnalyticsHtml(data);
+  try {
+    return await htmlToPdf(html);
+  } catch (err) {
+    if ((err as Error).message === 'PDF_RENDERING_UNAVAILABLE') {
+      logger.warn('Falling back to HTML for student analytics');
+      return htmlToHtmlBuffer(html);
+    }
+    throw err;
+  }
+}

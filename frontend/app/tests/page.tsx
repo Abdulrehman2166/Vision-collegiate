@@ -4,12 +4,12 @@ import { useEffect, useState, useCallback } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Table, Pagination } from '@/components/ui/Table';
 import { Modal } from '@/components/ui/Modal';
-import { SectionLoader } from '@/components/ui/Loading';
+import { SectionLoader, Spinner } from '@/components/ui/Loading';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Send, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Send, Download, ChevronDown, ChevronUp, ClipboardList, BarChart3, FileSpreadsheet, X } from 'lucide-react';
 import { format } from 'date-fns';
 import api, { type ApiResponse, type Test, type Batch } from '@/utils/api';
 import { hasRole } from '@/utils/auth';
@@ -37,6 +37,27 @@ const testSchema = z.object({
 });
 type FormData = z.infer<typeof testSchema>;
 
+interface MarksStudent {
+  studentId:   number;
+  studentName: string;
+  rollNumber:  string;
+  marks:       number | null;
+  updatedAt:   string | null;
+}
+
+interface MarksSheet {
+  test: {
+    id: number;
+    title: string;
+    subject: string;
+    total_marks: number;
+    test_date: string | null;
+    batch_id: number | null;
+    grade: string;
+  };
+  students: MarksStudent[];
+}
+
 export default function TestsPage() {
   const canCreate = hasRole('admin', 'teacher');
   const [tests,    setTests]    = useState<Test[]>([]);
@@ -49,6 +70,24 @@ export default function TestsPage() {
   const [step,       setStep]         = useState(1);
   const [submitting, setSubmitting]   = useState(false);
   const [expandedQ,  setExpandedQ]    = useState<number | null>(null);
+
+  // marks entry
+  const [marksTest,    setMarksTest]    = useState<Test | null>(null);
+  const [marksSheet,   setMarksSheet]   = useState<MarksSheet | null>(null);
+  const [marksDraft,   setMarksDraft]   = useState<Record<number, string>>({});
+  const [marksLoading, setMarksLoading] = useState(false);
+  const [marksSaving,  setMarksSaving]  = useState(false);
+
+  // analytics reports
+  const [reportMonth, setReportMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [reportBatch, setReportBatch] = useState('');
+  const [analyticsStudent, setAnalyticsStudent] = useState('');
+  const [studentOptions, setStudentOptions]     = useState<{ id: number; name: string; roll_number: string | null }[]>([]);
+  const [analyticsTitle, setAnalyticsTitle]     = useState('Monthly Test Analytics');
+  const [pdfUrl,       setPdfUrl]      = useState('');
+  const [pdfContent,   setPdfContent]  = useState('');
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [generatingKind, setGeneratingKind] = useState<'batch' | 'student' | null>(null);
 
   const {
     register, handleSubmit, control, watch, reset,
@@ -81,6 +120,20 @@ export default function TestsPage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const stId = reportBatch ? `batchId=${reportBatch}&` : '';
+    api.get<ApiResponse<{ id: number; name: string; roll_number: string | null }[]>>(
+      `/students?${stId}limit=200&status=active`,
+    )
+      .then((r) => {
+        setStudentOptions(r.data.data);
+        const prev = studentOptions.find((s) => String(s.id) === analyticsStudent);
+        if (!prev || !r.data.data.some((s) => s.id === prev.id)) setAnalyticsStudent('');
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportBatch]);
+
   async function onSubmit(data: FormData) {
     setSubmitting(true);
     try {
@@ -111,6 +164,107 @@ export default function TestsPage() {
     } catch { toast.error('Dispatch failed'); }
   }
 
+  async function openMarks(test: Test) {
+    setMarksTest(test);
+    setMarksSheet(null);
+    setMarksDraft({});
+    setMarksLoading(true);
+    try {
+      const res = await api.get<ApiResponse<MarksSheet>>(`/tests/${test.id}/marks`);
+      setMarksSheet(res.data.data);
+      setMarksDraft(
+        Object.fromEntries(
+          res.data.data.students.map((s) => [s.studentId, s.marks == null ? '' : String(s.marks)]),
+        ),
+      );
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to load marks';
+      toast.error(msg);
+      setMarksTest(null);
+    } finally {
+      setMarksLoading(false);
+    }
+  }
+
+  async function saveMarks() {
+    if (!marksSheet) return;
+    setMarksSaving(true);
+    try {
+      const records = marksSheet.students
+        .map((s) => {
+          const v = marksDraft[s.studentId]?.trim();
+          if (!v) return null;
+          const num = parseFloat(v);
+          if (isNaN(num)) return null;
+          return { studentId: s.studentId, marks: num };
+        })
+        .filter(Boolean) as { studentId: number; marks: number }[];
+      if (!records.length) {
+        toast.error('Enter marks for at least one student');
+        setMarksSaving(false);
+        return;
+      }
+      const res = await api.post<ApiResponse<{ saved: number }>>(`/tests/${marksSheet.test.id}/marks`, { records });
+      toast.success(`Saved marks for ${res.data.data.saved} students`);
+      setMarksTest(null);
+      fetchTests();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save marks';
+      toast.error(msg);
+    } finally {
+      setMarksSaving(false);
+    }
+  }
+
+  function openPdfModal(title: string, url: string) {
+    setAnalyticsTitle(title);
+    if (url.startsWith('data:')) {
+      setPdfUrl('');
+      setPdfContent(atob(url.split(',')[1]));
+    } else {
+      setPdfUrl(url);
+      setPdfContent('');
+    }
+    setShowPdfModal(true);
+  }
+
+  async function generateBatchAnalytics() {
+    if (!reportMonth) { toast.error('Select a month'); return; }
+    if (generatingKind) return;
+    setGeneratingKind('batch');
+    try {
+      const res = await api.post<ApiResponse<{ url: string }>>('/tests/reports/monthly-analytics', {
+        month: reportMonth,
+        ...(reportBatch ? { batchId: parseInt(reportBatch) } : {}),
+      });
+      openPdfModal(`Monthly Analytics – ${reportMonth}`, res.data.data.url);
+      toast.success('Batch analytics generated');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to generate report';
+      toast.error(msg);
+    } finally { setGeneratingKind(null); }
+  }
+
+  async function generateStudentAnalytics() {
+    if (!reportMonth)   { toast.error('Select a month'); return; }
+    if (!analyticsStudent) { toast.error('Select a student'); return; }
+    if (generatingKind) return;
+    setGeneratingKind('student');
+    try {
+      const res = await api.post<ApiResponse<{ url: string }>>('/tests/reports/monthly-analytics', {
+        month:     reportMonth,
+        ...(reportBatch ? { batchId: parseInt(reportBatch) } : {}),
+        studentId: parseInt(analyticsStudent),
+      });
+      const st = studentOptions.find((s) => String(s.id) === analyticsStudent);
+      openPdfModal(`${st?.name ?? 'Student'} Analytics – ${reportMonth}`, res.data.data.url);
+      toast.success('Student analytics generated');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to generate report';
+      toast.error(msg);
+    } finally { setGeneratingKind(null); }
+  }
+
   const columns = [
     { key: 'title',         header: 'Title' },
     { key: 'subject',       header: 'Subject' },
@@ -135,6 +289,12 @@ export default function TestsPage() {
               <Send className="w-4 h-4 text-brand-600 dark:text-brand-400" />
             </button>
           )}
+          {canCreate && (
+            <button onClick={() => openMarks(t)}
+                    className="p-1.5 rounded-lg hover:bg-brand-50 dark:hover:bg-brand-900/20" title="Enter marks">
+              <ClipboardList className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            </button>
+          )}
         </div>
       ),
     },
@@ -154,6 +314,74 @@ export default function TestsPage() {
             <Plus className="w-4 h-4" /> Create Test
           </button>
         )}
+      </div>
+
+      {/* Reports */}
+      <div className="card p-4 sm:p-5 mb-5">
+        <div className="flex items-center gap-2 mb-4">
+          <FileSpreadsheet className="w-5 h-5 text-indigo-400" />
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-wide">MONTHLY TEST ANALYTICS</h2>
+          <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto hidden sm:inline">
+            Enter marks per test, then generate the end-of-month student report.
+          </span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-3">
+            <div className="flex items-center gap-2 text-slate-300">
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center">
+                <BarChart3 className="w-4 h-4 text-indigo-300" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Batch / Class Report</p>
+                <p className="text-xs text-slate-500">All students: rank, weekly trend, best &amp; weak subjects</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="label">Month</label>
+                <input type="month" className="input w-full" value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} />
+              </div>
+              <div>
+                <label className="label">Batch</label>
+                <select className="select w-full" value={reportBatch} onChange={(e) => setReportBatch(e.target.value)}>
+                  <option value="">All Batches</option>
+                  {batches.map((b) => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <button onClick={generateBatchAnalytics} disabled={generatingKind !== null} className="btn-primary w-full">
+              {generatingKind === 'batch' ? <><Spinner size="sm" light /> Generating…</> : <><BarChart3 className="w-4 h-4" /> Generate Batch Report</>}
+            </button>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-3">
+            <div className="flex items-center gap-2 text-slate-300">
+              <div className="w-8 h-8 rounded-lg bg-violet-500/15 border border-violet-500/25 flex items-center justify-center">
+                <ClipboardList className="w-4 h-4 text-violet-300" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Student Report</p>
+                <p className="text-xs text-slate-500">Per-student detail: tests, subjects &amp; weekly trend</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="label">Month</label>
+                <input type="month" className="input w-full" value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} />
+              </div>
+              <div>
+                <label className="label">Student</label>
+                <select className="select w-full" value={analyticsStudent} onChange={(e) => setAnalyticsStudent(e.target.value)}>
+                  <option value="">— Select —</option>
+                  {studentOptions.map((s) => <option key={s.id} value={String(s.id)}>{s.name}{s.roll_number ? ` (${s.roll_number})` : ''}</option>)}
+                </select>
+              </div>
+            </div>
+            <button onClick={generateStudentAnalytics} disabled={generatingKind !== null} className="btn-primary w-full">
+              {generatingKind === 'student' ? <><Spinner size="sm" light /> Generating…</> : <><ClipboardList className="w-4 h-4" /> Generate Student Report</>}
+            </button>
+          </div>
+        </div>
       </div>
 
       {loading ? <SectionLoader /> : (
@@ -330,6 +558,90 @@ export default function TestsPage() {
           )}
         </form>
       </Modal>
+
+      {/* ── Marks Entry Modal ── */}
+      <Modal
+        open={marksTest !== null}
+        onClose={() => setMarksTest(null)}
+        title={marksSheet ? `Enter Marks – ${marksSheet.test.title}` : 'Enter Marks'}
+        size="lg"
+        description={marksSheet
+          ? `${marksSheet.test.subject} · Total: ${marksSheet.test.total_marks} marks · ${marksSheet.students.length} students`
+          : 'Loading…'}
+      >
+        {marksLoading ? (
+          <div className="py-8 flex justify-center"><Spinner /></div>
+        ) : marksSheet ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[55vh] overflow-y-auto pr-1">
+              {marksSheet.students.map((s) => (
+                <div key={s.studentId} className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 p-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{s.studentName}</p>
+                    <p className="text-xs text-slate-500">{s.rollNumber || '—'}</p>
+                  </div>
+                  <input
+                    type="number"
+                    min={0}
+                    max={marksSheet.test.total_marks}
+                    step="0.5"
+                    placeholder="–"
+                    className="input w-20 text-center"
+                    value={marksDraft[s.studentId] ?? ''}
+                    onChange={(e) => setMarksDraft((d) => ({ ...d, [s.studentId]: e.target.value }))}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
+              <span className="text-xs text-slate-500">
+                {marksSheet.students.filter((s) => marksDraft[s.studentId]?.trim()).length} of {marksSheet.students.length} marked
+              </span>
+              <div className="flex gap-2">
+                <button onClick={() => setMarksTest(null)} className="btn-secondary text-sm">Cancel</button>
+                <button onClick={saveMarks} disabled={marksSaving} className="btn-primary text-sm">
+                  {marksSaving ? <><Spinner size="sm" light /> Saving…</> : 'Save Marks'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="py-8 text-center text-slate-500">Failed to load.</div>
+        )}
+      </Modal>
+
+      {/* ── PDF Preview Modal ── */}
+      {showPdfModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="font-semibold text-slate-900 dark:text-white">{analyticsTitle}</h3>
+              <button onClick={() => setShowPdfModal(false)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-2">
+              {pdfUrl ? (
+                <iframe
+                  key={pdfUrl}
+                  src={pdfUrl}
+                  title="Analytics Report"
+                  className="w-full h-full min-h-[500px] border-0 rounded-lg"
+                />
+              ) : (
+                <iframe
+                  srcDoc={pdfContent}
+                  title="Analytics Report"
+                  className="w-full h-full min-h-[500px] border-0 rounded-lg"
+                />
+              )}
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 dark:border-slate-700">
+              <button onClick={() => setShowPdfModal(false)} className="btn-secondary text-sm">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
