@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { isAuthenticated } from '@/utils/auth';
 import { Sidebar } from './Sidebar';
 import { HeaderBar } from './HeaderBar';
+import { ClockCalendar } from './ClockCalendar';
 import { PageLoader } from '@/components/ui/Loading';
 import { Menu } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -37,7 +38,12 @@ export function AppShell({ children }: AppShellProps) {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Desktop header */}
-        <div className="hidden md:block"><HeaderBar /></div>
+        <div className="hidden md:flex items-stretch">
+          <div className="flex-1 min-w-0"><HeaderBar /></div>
+          <div className="flex items-center pl-3 pr-5 flex-shrink-0" style={{ borderLeft: '1px solid rgba(255,255,255,0.05)' }}>
+            <ClockCalendar />
+          </div>
+        </div>
 
         {/* Mobile top bar */}
         <div
@@ -75,6 +81,11 @@ export function AppShell({ children }: AppShellProps) {
           </div>
 
           <div className="w-[40px]" />
+        </div>
+
+        {/* Mobile clock row — below the top bar */}
+        <div className="md:hidden flex justify-end px-4 pt-2">
+          <ClockCalendar />
         </div>
 
         {/* Page content — fast, subtle transition for instant feel */}
