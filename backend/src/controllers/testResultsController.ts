@@ -23,8 +23,10 @@ export async function saveTestMarks(req: Request, res: Response, next: NextFunct
     const schema = z.object({
       records: z.array(
         z.object({
-          studentId: z.number().int().positive(),
-          marks:     z.number().min(0).max(test.total_marks),
+          studentId:   z.number().int().positive(),
+          marks:       z.number().min(0),
+          subject:     z.string().trim().max(120).optional(),
+          totalMarks:  z.number().positive().optional(),
         }),
       ).min(1),
     });
@@ -51,12 +53,21 @@ export async function saveTestMarks(req: Request, res: Response, next: NextFunct
 
     await client.query('BEGIN');
     for (const rec of data.records) {
+      const subject    = (rec.subject?.trim() || test.subject).slice(0, 120);
+      const totalMarks = rec.totalMarks ?? Number(test.total_marks);
+      if (rec.marks > totalMarks) {
+        throw createError(`Marks (${rec.marks}) exceed the out-of total (${totalMarks}) for this record`, 400);
+      }
       await client.query(
-        `INSERT INTO test_results (test_id, student_id, marks_obtained, recorded_by)
-         VALUES ($1,$2,$3,$4)
+        `INSERT INTO test_results (test_id, student_id, marks_obtained, subject, total_marks, recorded_by)
+         VALUES ($1,$2,$3,$4,$5,$6)
          ON CONFLICT (test_id, student_id)
-         DO UPDATE SET marks_obtained = EXCLUDED.marks_obtained, recorded_by = EXCLUDED.recorded_by, updated_at = now()`,
-        [testId, rec.studentId, rec.marks, req.user!.id],
+         DO UPDATE SET marks_obtained = EXCLUDED.marks_obtained,
+                       subject       = EXCLUDED.subject,
+                       total_marks   = EXCLUDED.total_marks,
+                       recorded_by   = EXCLUDED.recorded_by,
+                       updated_at    = now()`,
+        [testId, rec.studentId, rec.marks, subject, totalMarks, req.user!.id],
       );
     }
     await client.query('COMMIT');
@@ -87,7 +98,7 @@ export async function getTestMarks(req: Request, res: Response, next: NextFuncti
     if (test.batch_id) {
       students = await pool.query(
         `SELECT s.id AS "studentId", s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber",
-                tr.marks_obtained AS "marks", tr.updated_at AS "updatedAt"
+                tr.marks_obtained AS "marks", tr.subject AS "subject", tr.total_marks AS "totalMarks", tr.updated_at AS "updatedAt"
          FROM students s
          LEFT JOIN test_results tr ON tr.student_id = s.id AND tr.test_id = $1
          WHERE s.batch_id = $2 AND s.status = 'active'
@@ -97,7 +108,7 @@ export async function getTestMarks(req: Request, res: Response, next: NextFuncti
     } else {
       students = await pool.query(
         `SELECT s.id AS "studentId", s.name AS "studentName", COALESCE(s.roll_number,'') AS "rollNumber",
-                tr.marks_obtained AS "marks", tr.updated_at AS "updatedAt"
+                tr.marks_obtained AS "marks", tr.subject AS "subject", tr.total_marks AS "totalMarks", tr.updated_at AS "updatedAt"
          FROM students s
          LEFT JOIN test_results tr ON tr.student_id = s.id AND tr.test_id = $1
          WHERE s.grade = $2 AND s.status = 'active'
@@ -119,11 +130,13 @@ export async function getTestMarks(req: Request, res: Response, next: NextFuncti
           grade:       test.grade,
         },
         students: students.rows.map((s) => ({
-          studentId:   Number(s.studentId),
-          studentName: s.studentName,
-          rollNumber:  s.rollNumber,
-          marks:       s.marks == null ? null : Number(s.marks),
-          updatedAt:   s.updatedAt,
+          studentId:    Number(s.studentId),
+          studentName:  s.studentName,
+          rollNumber:   s.rollNumber,
+          marks:        s.marks == null ? null : Number(s.marks),
+          subject:      s.subject || test.subject,
+          totalMarks:   s.totalMarks == null ? Number(test.total_marks) : Number(s.totalMarks),
+          updatedAt:    s.updatedAt,
         })),
       },
     });
@@ -182,7 +195,9 @@ export async function generateMonthlyAnalytics(req: Request, res: Response, next
     if (scopeBatchIds) {
       tests = await pool.query(
         `SELECT t.id AS "testId", t.title, t.subject, t.total_marks::float AS "totalMarks",
-                to_char(t.test_date, 'YYYY-MM-DD') AS date, s.id AS "studentId", tr.marks_obtained::float AS "marks"
+                to_char(t.test_date, 'YYYY-MM-DD') AS date, s.id AS "studentId", tr.marks_obtained::float AS "marks",
+                COALESCE(tr.subject, t.subject) AS "subjectEff",
+                COALESCE(tr.total_marks, t.total_marks)::float AS "totalMarksEff"
          FROM tests t
          JOIN test_results tr ON tr.test_id = t.id
          JOIN students     s  ON s.id = tr.student_id
@@ -194,7 +209,9 @@ export async function generateMonthlyAnalytics(req: Request, res: Response, next
     } else {
       tests = await pool.query(
         `SELECT t.id AS "testId", t.title, t.subject, t.total_marks::float AS "totalMarks",
-                to_char(t.test_date, 'YYYY-MM-DD') AS date, s.id AS "studentId", tr.marks_obtained::float AS "marks"
+                to_char(t.test_date, 'YYYY-MM-DD') AS date, s.id AS "studentId", tr.marks_obtained::float AS "marks",
+                COALESCE(tr.subject, t.subject) AS "subjectEff",
+                COALESCE(tr.total_marks, t.total_marks)::float AS "totalMarksEff"
          FROM tests t
          JOIN test_results tr ON tr.test_id = t.id
          JOIN students     s  ON s.id = tr.student_id
@@ -210,16 +227,16 @@ export async function generateMonthlyAnalytics(req: Request, res: Response, next
     for (const r of tests.rows) {
       const sid = Number(r.studentId);
       if (!byStudent.has(sid)) byStudent.set(sid, []);
-      const pct = r.totalMarks > 0 ? (r.marks / r.totalMarks) * 100 : 0;
+      const pct = r.totalMarksEff > 0 ? (r.marks / r.totalMarksEff) * 100 : 0;
       const day = parseInt(r.date.split('-')[2], 10);
       const week = Math.min(Math.floor((day - 1) / 7) + 1, 4);
       byStudent.get(sid)!.push({
         date:          r.date,
         week,
-        subject:       r.subject,
+        subject:       r.subjectEff,
         title:         r.title,
         marksObtained: r.marks,
-        totalMarks:    r.totalMarks,
+        totalMarks:    r.totalMarksEff,
         percentage:    Math.round(pct * 10) / 10,
       });
     }

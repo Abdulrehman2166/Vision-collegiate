@@ -42,6 +42,8 @@ interface MarksStudent {
   studentName: string;
   rollNumber:  string;
   marks:       number | null;
+  subject:     string;
+  totalMarks:  number;
   updatedAt:   string | null;
 }
 
@@ -87,6 +89,8 @@ export default function TestsPage() {
   const [marksTest,      setMarksTest]      = useState<Test | null>(null);
   const [marksSheet,     setMarksSheet]     = useState<MarksSheet | null>(null);
   const [marksDraft,     setMarksDraft]     = useState<Record<number, string>>({});
+  const [marksSubject,   setMarksSubject]   = useState<Record<number, string>>({});
+  const [marksTotal,     setMarksTotal]     = useState<Record<number, string>>({});
   const [marksStudentId, setMarksStudentId] = useState('');
   const [marksLoading,   setMarksLoading]   = useState(false);
   const [marksSaving,    setMarksSaving]    = useState(false);
@@ -193,6 +197,8 @@ export default function TestsPage() {
     setMarksTest(test);
     setMarksSheet(null);
     setMarksDraft({});
+    setMarksSubject({});
+    setMarksTotal({});
     setMarksStudentId('');
     setMarksLoading(true);
     try {
@@ -204,6 +210,8 @@ export default function TestsPage() {
           students.map((s) => [s.studentId, s.marks == null ? '' : String(s.marks)]),
         ),
       );
+      setMarksSubject(Object.fromEntries(students.map((s) => [s.studentId, s.subject])));
+      setMarksTotal(Object.fromEntries(students.map((s) => [s.studentId, String(s.totalMarks)])));
       // auto-select first unmarked student
       const first = students.find((s) => s.marks == null) ?? students[0];
       if (first) setMarksStudentId(String(first.studentId));
@@ -222,17 +230,26 @@ export default function TestsPage() {
     const v = (marksDraft[sid] ?? '').trim();
     if (!v) { toast.error('Enter marks for this student'); return; }
     const num = parseFloat(v);
-    if (isNaN(num) || num < 0 || num > marksSheet.test.total_marks) {
-      toast.error(`Marks must be 0 – ${marksSheet.test.total_marks}`);
+    const subject = (marksSubject[sid] ?? '').trim();
+    if (!subject) { toast.error('Enter or select a subject'); return; }
+    const totalStr = (marksTotal[sid] ?? '').trim();
+    const total = parseFloat(totalStr);
+    if (!totalStr || isNaN(total) || total <= 0) { toast.error('Enter a valid out-of total'); return; }
+    if (isNaN(num) || num < 0 || num > total) {
+      toast.error(`Marks must be 0 – ${total}`);
       return;
     }
     setMarksSaving(true);
     try {
-      await api.post(`/tests/${marksSheet.test.id}/marks`, { records: [{ studentId: sid, marks: num }] });
+      await api.post(`/tests/${marksSheet.test.id}/marks`, {
+        records: [{ studentId: sid, marks: num, subject, totalMarks: total }],
+      });
       const studentName = marksSheet.students.find((s) => s.studentId === sid)?.studentName ?? '';
       toast.success(`Saved ${studentName}'s marks`);
       // mark locally as done and advance to the next unmarked student
-      const updated = marksSheet.students.map((s) => (s.studentId === sid ? { ...s, marks: num } : s));
+      const updated = marksSheet.students.map((s) =>
+        s.studentId === sid ? { ...s, marks: num, subject, totalMarks: total } : s
+      );
       setMarksSheet({ ...marksSheet, students: updated });
       setMarksDraft((d) => ({ ...d, [sid]: String(num) }));
       const next = updated.find((s) => s.marks == null);
@@ -724,16 +741,48 @@ export default function TestsPage() {
                       <p className="text-xs text-slate-500">{st.rollNumber || '—'} · #{marked + 1} to enter</p>
                     </div>
                     {st.marks != null && (
-                      <span className="text-xs text-emerald-600 font-medium">Saved: {st.marks} / {marksSheet.test.total_marks}</span>
+                      <span className="text-xs text-emerald-600 font-medium">
+                        Saved: {st.marks} / {st.totalMarks}
+                      </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Subject — selectable or writable */}
+                    <div>
+                      <label className="label">Subject</label>
+                      <input
+                        list="marks-subjects"
+                        className="input"
+                        placeholder={st.subject || marksSheet.test.subject}
+                        value={marksSubject[sid] ?? ''}
+                        onChange={(e) => setMarksSubject((d) => ({ ...d, [sid]: e.target.value }))}
+                      />
+                      <datalist id="marks-subjects">
+                        {['Physics','Chemistry','Biology','Mathematics','English','Urdu','Islamiat','Pak Studies','Computer Science','Accounting','Business','Economics','Statistics','Computer'].map((sub) => (
+                          <option key={sub} value={sub} />
+                        ))}
+                      </datalist>
+                    </div>
+                    {/* Editable out-of total */}
+                    <div>
+                      <label className="label">Out of (Total)</label>
+                      <input
+                        type="number"
+                        min={1}
+                        step="0.5"
+                        className="input"
+                        value={marksTotal[sid] ?? ''}
+                        onChange={(e) => setMarksTotal((d) => ({ ...d, [sid]: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 mt-3">
                     <input
                       type="number"
                       min={0}
-                      max={marksSheet.test.total_marks}
+                      max={Number(marksTotal[sid]) || undefined}
                       step="0.5"
-                      placeholder={`0 – ${marksSheet.test.total_marks}`}
+                      placeholder={`0 – ${marksTotal[sid] || st.totalMarks}`}
                       className="input flex-1 text-lg text-center"
                       value={marksDraft[sid] ?? ''}
                       onChange={(e) => setMarksDraft((d) => ({ ...d, [sid]: e.target.value }))}

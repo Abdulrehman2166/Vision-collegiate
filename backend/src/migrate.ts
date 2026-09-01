@@ -139,6 +139,19 @@ CREATE TABLE IF NOT EXISTS test_results (
 CREATE INDEX IF NOT EXISTS idx_test_results_test    ON test_results(test_id);
 CREATE INDEX IF NOT EXISTS idx_test_results_student ON test_results(student_id);
 
+-- Per-student subject + "out of" total for marks entry (editable per student)
+ALTER TABLE test_results
+  ADD COLUMN IF NOT EXISTS subject      VARCHAR(120),
+  ADD COLUMN IF NOT EXISTS total_marks  NUMERIC(6,2);
+
+-- Backfill existing rows from their test (so old data stays consistent)
+UPDATE test_results tr
+SET subject     = t.subject,
+    total_marks = t.total_marks
+FROM tests t
+WHERE t.id = tr.test_id
+  AND (tr.subject IS NULL OR tr.total_marks IS NULL);
+
 -- ─────────────────────────────────────────────
 -- MASTER WEEKLY TEST SCHEDULE
 -- Rotating monthly plan: 3 tests/week per class, Week 4 = Grand Revision Test
