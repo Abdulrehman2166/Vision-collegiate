@@ -456,7 +456,7 @@ export default function TestsPage() {
                 <label className="label">Batch</label>
                 <select className="select w-full" value={reportBatch} onChange={(e) => setReportBatch(e.target.value)}>
                   <option value="">All Batches</option>
-                  {batches.map((b) => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
+                  {batches.map((b) => <option key={b.id} value={String(b.id)}>{b.name} — {b.grade}{b.stream ? ` (${b.stream})` : ''}</option>)}
                 </select>
               </div>
             </div>
@@ -551,7 +551,7 @@ export default function TestsPage() {
                   <label className="label">Batch</label>
                   <select className="select" {...register('batch_id')}>
                     <option value="">— All —</option>
-                    {batches.map((b) => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
+                  {batches.map((b) => <option key={b.id} value={String(b.id)}>{b.name} — {b.grade}{b.stream ? ` (${b.stream})` : ''}</option>)}
                   </select>
                 </div>
                 <div>
