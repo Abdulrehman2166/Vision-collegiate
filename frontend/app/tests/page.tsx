@@ -9,7 +9,8 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Send, Download, ChevronDown, ChevronUp, ClipboardList, BarChart3, FileSpreadsheet, X, CalendarRange } from 'lucide-react';
+import { Plus, Trash2, Send, Download, ChevronDown, ChevronUp, ClipboardList, BarChart3, FileSpreadsheet, X, CalendarRange, Check } from 'lucide-react';
+import { clsx } from 'clsx';
 import { format } from 'date-fns';
 import api, { type ApiResponse, type Test, type Batch } from '@/utils/api';
 import { hasRole } from '@/utils/auth';
@@ -92,6 +93,7 @@ export default function TestsPage() {
   const [marksSubject,   setMarksSubject]   = useState<Record<number, string>>({});
   const [marksTotal,     setMarksTotal]     = useState<Record<number, string>>({});
   const [marksStudentId, setMarksStudentId] = useState('');
+  const [marksQuery,     setMarksQuery]     = useState('');
   const [marksLoading,   setMarksLoading]   = useState(false);
   const [marksSaving,    setMarksSaving]    = useState(false);
 
@@ -215,6 +217,10 @@ export default function TestsPage() {
       // auto-select first unmarked student
       const first = students.find((s) => s.marks == null) ?? students[0];
       if (first) setMarksStudentId(String(first.studentId));
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`marks-${first?.studentId ?? ''}`);
+        if (el && first?.marks == null) el.focus();
+      });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to load marks';
       toast.error(msg);
@@ -224,9 +230,10 @@ export default function TestsPage() {
     }
   }
 
-  async function saveStudentMarks() {
-    if (!marksSheet || !marksStudentId) return;
-    const sid = parseInt(marksStudentId, 10);
+  async function saveStudentMarks(targetId?: number) {
+    if (!marksSheet) return;
+    const sid = targetId ?? (marksStudentId ? parseInt(marksStudentId, 10) : 0);
+    if (!sid) return;
     const v = (marksDraft[sid] ?? '').trim();
     if (!v) { toast.error('Enter marks for this student'); return; }
     const num = parseFloat(v);
@@ -254,6 +261,11 @@ export default function TestsPage() {
       setMarksDraft((d) => ({ ...d, [sid]: String(num) }));
       const next = updated.find((s) => s.marks == null);
       setMarksStudentId(next ? String(next.studentId) : '');
+      // when the next student is visible in the list, focus its marks input
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`marks-${next?.studentId ?? sid}`);
+        el?.focus();
+      });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save marks';
       toast.error(msg);
@@ -262,13 +274,12 @@ export default function TestsPage() {
     }
   }
 
-  function jumpToNext() {
-    if (!marksSheet) return;
-    const sid = marksStudentId ? parseInt(marksStudentId, 10) : null;
-    const next = marksSheet.students.find((s) => s.marks == null && s.studentId !== sid)
-      ?? marksSheet.students.find((s) => s.marks == null);
-    if (next) setMarksStudentId(String(next.studentId));
-  }
+  // students shown in the marks list, filtered by the search box
+  const filteredStudents = (marksSheet?.students ?? []).filter((s) => {
+    const q = marksQuery.trim().toLowerCase();
+    if (!q) return true;
+    return s.studentName.toLowerCase().includes(q) || s.rollNumber.toLowerCase().includes(q);
+  });
 
   function openPdfModal(title: string, url: string) {
     setAnalyticsTitle(title);
@@ -701,111 +712,99 @@ export default function TestsPage() {
           <div className="py-8 flex justify-center"><Spinner /></div>
         ) : marksSheet ? (
           <div className="space-y-4">
-            {/* progress */}
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-500">
-                {marksSheet.students.filter((s) => s.marks != null || (marksDraft[s.studentId] ?? '').trim()).length}
-                {' '}of {marksSheet.students.length} students marked
+            {/* progress + search */}
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs text-slate-500 flex-1">
+                {marksSheet.students.filter((s) => s.marks != null).length}
+                {' '}of {marksSheet.students.length} marked
               </span>
-              <span className="text-slate-400">Total: {marksSheet.test.total_marks} marks</span>
+              <input
+                className="input w-56"
+                placeholder="Search student by name or roll no…"
+                value={marksQuery}
+                onChange={(e) => setMarksQuery(e.target.value)}
+              />
             </div>
 
-            {/* select single student */}
-            <div>
-              <label className="label">Select Student</label>
-              <select
-                className="select w-full"
-                value={marksStudentId}
-                onChange={(e) => setMarksStudentId(e.target.value)}
-              >
-                <option value="">— Choose a student —</option>
-                {marksSheet.students.map((s) => (
-                  <option key={s.studentId} value={String(s.studentId)}>
-                    {s.marks != null ? '✓ ' : ''}{s.studentName}{s.rollNumber ? ` (${s.rollNumber})` : ''}
-                  </option>
-                ))}
-              </select>
+            {/* scrollable inline list */}
+            <div className="max-h-[52vh] overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-200 dark:divide-slate-700/70">
+              {filteredStudents.map((s, i) => {
+                const marked = s.marks != null;
+                const activeRef = s.studentId === parseInt(marksStudentId, 10);
+                return (
+                  <div key={s.studentId} className={clsx('px-3 py-2.5 grid gap-2', activeRef ? 'bg-indigo-500/[0.04]' : '')}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {marked
+                          ? <span className="w-5 h-5 rounded-full bg-emerald-500/90 flex items-center justify-center flex-shrink-0"><Check className="w-3 h-3 text-white" /></span>
+                          : <span className="w-5 h-5 rounded-full bg-white/[0.04] border border-slate-600 flex items-center justify-center flex-shrink-0 text-[10px] text-slate-500">#{i + 1}</span>}
+                        <p className="text-sm font-semibold truncate">{s.studentName}</p>
+                        {s.rollNumber && <span className="text-[11px] text-slate-500">{s.rollNumber}</span>}
+                      </div>
+                      {marked ? (
+                        <span className="text-[11px] text-emerald-500 font-medium">Saved {s.marks}/{s.totalMarks}</span>
+                      ) : (
+                        <span className="text-[11px] text-amber-500/80">Not entered</span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-[1fr_96px_96px_auto] gap-2 items-end">
+                      {/* subject */}
+                      <div>
+                        <input
+                          list="marks-subjects"
+                          className="input text-sm"
+                          placeholder="Subject"
+                          value={marksSubject[s.studentId] ?? ''}
+                          onChange={(e) => setMarksSubject((d) => ({ ...d, [s.studentId]: e.target.value }))}
+                        />
+                      </div>
+                      {/* out of */}
+                      <div>
+                        <input
+                          type="number"
+                          min={1}
+                          step="1"
+                          className="input text-sm text-center"
+                          placeholder="Out of"
+                          value={marksTotal[s.studentId] ?? ''}
+                          onChange={(e) => setMarksTotal((d) => ({ ...d, [s.studentId]: e.target.value }))}
+                        />
+                      </div>
+                      {/* marks */}
+                      <div>
+                        <input
+                          id={`marks-${s.studentId}`}
+                          type="number"
+                          min={0}
+                          step="0.5"
+                          max={Number(marksTotal[s.studentId]) || undefined}
+                          className="input text-sm text-center font-semibold"
+                          placeholder="Marks"
+                          value={marksDraft[s.studentId] ?? ''}
+                          onChange={(e) => setMarksDraft((d) => ({ ...d, [s.studentId]: e.target.value }))}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveStudentMarks(s.studentId); } }}
+                          onFocus={() => setMarksStudentId(String(s.studentId))}
+                        />
+                      </div>
+                      <button
+                        onClick={() => saveStudentMarks(s.studentId)}
+                        disabled={marksSaving}
+                        className="btn-primary text-xs px-3 py-2"
+                      >
+                        {marksSaving && activeRef ? <Spinner size="sm" light /> : 'Save'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              {!filteredStudents.length && (
+                <p className="py-8 text-center text-sm text-slate-500">No students match “{marksQuery}”.</p>
+              )}
             </div>
 
-            {/* selected student score entry */}
-            {marksStudentId ? (() => {
-              const sid = parseInt(marksStudentId, 10);
-              const st = marksSheet.students.find((s) => s.studentId === sid);
-              if (!st) return null;
-              const marked = marksSheet.students.filter((s) => s.marks != null).length;
-              return (
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-base font-semibold">{st.studentName}</p>
-                      <p className="text-xs text-slate-500">{st.rollNumber || '—'} · #{marked + 1} to enter</p>
-                    </div>
-                    {st.marks != null && (
-                      <span className="text-xs text-emerald-600 font-medium">
-                        Saved: {st.marks} / {st.totalMarks}
-                      </span>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Subject — selectable or writable */}
-                    <div>
-                      <label className="label">Subject</label>
-                      <input
-                        list="marks-subjects"
-                        className="input"
-                        placeholder={st.subject || marksSheet.test.subject}
-                        value={marksSubject[sid] ?? ''}
-                        onChange={(e) => setMarksSubject((d) => ({ ...d, [sid]: e.target.value }))}
-                      />
-                      <datalist id="marks-subjects">
-                        {['Physics','Chemistry','Biology','Mathematics','English','Urdu','Islamiat','Pak Studies','Computer Science','Accounting','Business','Economics','Statistics','Computer'].map((sub) => (
-                          <option key={sub} value={sub} />
-                        ))}
-                      </datalist>
-                    </div>
-                    {/* Editable out-of total */}
-                    <div>
-                      <label className="label">Out of (Total)</label>
-                      <input
-                        type="number"
-                        min={1}
-                        step="0.5"
-                        className="input"
-                        value={marksTotal[sid] ?? ''}
-                        onChange={(e) => setMarksTotal((d) => ({ ...d, [sid]: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 mt-3">
-                    <input
-                      type="number"
-                      min={0}
-                      max={Number(marksTotal[sid]) || undefined}
-                      step="0.5"
-                      placeholder={`0 – ${marksTotal[sid] || st.totalMarks}`}
-                      className="input flex-1 text-lg text-center"
-                      value={marksDraft[sid] ?? ''}
-                      onChange={(e) => setMarksDraft((d) => ({ ...d, [sid]: e.target.value }))}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveStudentMarks(); } }}
-                      autoFocus
-                    />
-                  </div>
-                </div>
-              );
-            })() : (
-              <div className="py-8 text-center text-slate-500 text-sm">Select a student to enter their marks.</div>
-            )}
-
-            <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
-              <button onClick={jumpToNext} className="btn-secondary text-sm" disabled={!marksStudentId}>
-                Next unmarked →
-              </button>
-              <div className="flex gap-2">
-                <button onClick={() => setMarksTest(null)} className="btn-secondary text-sm">Done</button>
-                <button onClick={saveStudentMarks} disabled={marksSaving || !marksStudentId} className="btn-primary text-sm">
-                  {marksSaving ? <><Spinner size="sm" light /> Saving…</> : 'Save & Next'}
-                </button>
-              </div>
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-slate-500">Type the subject, set out-of total (if different), enter marks, hit Enter or Save.</p>
+              <button onClick={() => setMarksTest(null)} className="btn-secondary text-sm">Done</button>
             </div>
           </div>
         ) : (
