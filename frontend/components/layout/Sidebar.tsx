@@ -58,7 +58,7 @@ const NavItem = memo(function NavItem({
     >
       {/* Icon container */}
       <span
-        className="relative flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-150"
+        className="relative flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 group-hover:scale-110 group-hover:brightness-110"
         style={active ? {
           background: `${item.color}1a`,
           boxShadow: `0 0 10px -3px ${item.color}70`,

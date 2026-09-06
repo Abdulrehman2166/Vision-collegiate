@@ -18,6 +18,7 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const [ready,       setReady]       = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [glow, setGlow]               = useState({ x: -600, y: -600 });
 
   useEffect(() => {
     if (!isAuthenticated()) router.replace('/login');
@@ -26,16 +27,39 @@ export function AppShell({ children }: AppShellProps) {
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
+  // Cursor spotlight — rAF-throttled glow that follows the pointer
+  useEffect(() => {
+    let raf = 0;
+    const move = (e: MouseEvent) => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => setGlow({ x: e.clientX, y: e.clientY }));
+    };
+    window.addEventListener('mousemove', move, { passive: true });
+    return () => { window.removeEventListener('mousemove', move); cancelAnimationFrame(raf); };
+  }, []);
+
   if (!ready) return <PageLoader />;
 
   return (
-    <div
-      className="flex min-h-screen"
-      style={{ background: 'linear-gradient(180deg, #04040f 0%, #06061a 100%)' }}
-    >
+    <div className="relative flex min-h-screen" style={{ background: 'linear-gradient(180deg, #04040f 0%, #06061a 100%)' }}>
+      {/* Ambient aurora + grid + vignette — behind everything */}
+      <div className="ambient-bg" aria-hidden>
+        <div className="ambient-blob ambient-blob-1" />
+        <div className="ambient-blob ambient-blob-2" />
+        <div className="ambient-blob ambient-blob-3" />
+        <div className="ambient-grid" />
+        <div className="ambient-vignette" />
+      </div>
+      {/* Cursor glow */}
+      <div
+        className="cursor-glow"
+        aria-hidden
+        style={{ background: `radial-gradient(620px circle at ${glow.x}px ${glow.y}px, rgba(99,102,241,0.06), transparent 70%)` }}
+      />
+
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="relative z-10 flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Desktop header */}
         <div className="hidden md:flex items-stretch">
@@ -92,9 +116,9 @@ export function AppShell({ children }: AppShellProps) {
         <main className="flex-1 overflow-auto">
           <motion.div
             key={pathname}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
+            initial={{ opacity: 0, y: 10, scale: 0.994 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8"
           >
             {children}
