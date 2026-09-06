@@ -4,13 +4,13 @@ import { useEffect, useState, useCallback } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Table, Pagination } from '@/components/ui/Table';
 import { Modal } from '@/components/ui/Modal';
+import { EnterMarksModal, type MarksTarget } from '@/components/ui/EnterMarksModal';
 import { SectionLoader, Spinner } from '@/components/ui/Loading';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Send, Download, ChevronDown, ChevronUp, ClipboardList, BarChart3, FileSpreadsheet, X, CalendarRange, Check } from 'lucide-react';
-import { clsx } from 'clsx';
+import { Plus, Trash2, Send, Download, ChevronDown, ChevronUp, ClipboardList, BarChart3, FileSpreadsheet, X, CalendarRange } from 'lucide-react';
 import { format } from 'date-fns';
 import api, { type ApiResponse, type Test, type Batch } from '@/utils/api';
 import { hasRole } from '@/utils/auth';
@@ -38,29 +38,6 @@ const testSchema = z.object({
 });
 type FormData = z.infer<typeof testSchema>;
 
-interface MarksStudent {
-  studentId:   number;
-  studentName: string;
-  rollNumber:  string;
-  marks:       number | null;
-  subject:     string;
-  totalMarks:  number;
-  updatedAt:   string | null;
-}
-
-interface MarksSheet {
-  test: {
-    id: number;
-    title: string;
-    subject: string;
-    total_marks: number;
-    test_date: string | null;
-    batch_id: number | null;
-    grade: string;
-  };
-  students: MarksStudent[];
-}
-
 interface ScheduleDay { day: string; subject: string; teacher: string | null }
 interface ScheduleWeek { week: number; days: ScheduleDay[] }
 interface ScheduleGrade { grade: string; weeks: ScheduleWeek[] }
@@ -86,16 +63,8 @@ export default function TestsPage() {
   const [savingSchedule, setSavingSchedule] = useState(false);
   const currentWeek = Math.min(Math.floor((new Date().getDate() - 1) / 7) + 1, 4);
 
-  // marks entry
-  const [marksTest,      setMarksTest]      = useState<Test | null>(null);
-  const [marksSheet,     setMarksSheet]     = useState<MarksSheet | null>(null);
-  const [marksDraft,     setMarksDraft]     = useState<Record<number, string>>({});
-  const [marksSubject,   setMarksSubject]   = useState<Record<number, string>>({});
-  const [marksTotal,     setMarksTotal]     = useState<Record<number, string>>({});
-  const [marksStudentId, setMarksStudentId] = useState('');
-  const [marksQuery,     setMarksQuery]     = useState('');
-  const [marksLoading,   setMarksLoading]   = useState(false);
-  const [marksSaving,    setMarksSaving]    = useState(false);
+  // marks entry — uses the shared EnterMarksModal
+  const [marksTest, setMarksTest] = useState<MarksTarget | null>(null);
 
   // analytics reports
   const [reportMonth, setReportMonth] = useState(format(new Date(), 'yyyy-MM'));
@@ -195,91 +164,9 @@ export default function TestsPage() {
     } catch { toast.error('Dispatch failed'); }
   }
 
-  async function openMarks(test: Test) {
-    setMarksTest(test);
-    setMarksSheet(null);
-    setMarksDraft({});
-    setMarksSubject({});
-    setMarksTotal({});
-    setMarksStudentId('');
-    setMarksLoading(true);
-    try {
-      const res = await api.get<ApiResponse<MarksSheet>>(`/tests/${test.id}/marks`);
-      setMarksSheet(res.data.data);
-      const students = res.data.data.students;
-      setMarksDraft(
-        Object.fromEntries(
-          students.map((s) => [s.studentId, s.marks == null ? '' : String(s.marks)]),
-        ),
-      );
-      setMarksSubject(Object.fromEntries(students.map((s) => [s.studentId, s.subject])));
-      setMarksTotal(Object.fromEntries(students.map((s) => [s.studentId, String(s.totalMarks)])));
-      // auto-select first unmarked student
-      const first = students.find((s) => s.marks == null) ?? students[0];
-      if (first) setMarksStudentId(String(first.studentId));
-      requestAnimationFrame(() => {
-        const el = document.getElementById(`marks-${first?.studentId ?? ''}`);
-        if (el && first?.marks == null) el.focus();
-      });
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to load marks';
-      toast.error(msg);
-      setMarksTest(null);
-    } finally {
-      setMarksLoading(false);
-    }
+  function openMarks(test: Test) {
+    setMarksTest({ id: test.id, title: test.title, subject: test.subject, total_marks: test.total_marks, test_date: test.test_date });
   }
-
-  async function saveStudentMarks(targetId?: number) {
-    if (!marksSheet) return;
-    const sid = targetId ?? (marksStudentId ? parseInt(marksStudentId, 10) : 0);
-    if (!sid) return;
-    const v = (marksDraft[sid] ?? '').trim();
-    if (!v) { toast.error('Enter marks for this student'); return; }
-    const num = parseFloat(v);
-    const subject = (marksSubject[sid] ?? '').trim();
-    if (!subject) { toast.error('Enter or select a subject'); return; }
-    const totalStr = (marksTotal[sid] ?? '').trim();
-    const total = parseFloat(totalStr);
-    if (!totalStr || isNaN(total) || total <= 0) { toast.error('Enter a valid out-of total'); return; }
-    if (isNaN(num) || num < 0 || num > total) {
-      toast.error(`Marks must be 0 – ${total}`);
-      return;
-    }
-    setMarksSaving(true);
-    try {
-      await api.post(`/tests/${marksSheet.test.id}/marks`, {
-        records: [{ studentId: sid, marks: num, subject, totalMarks: total }],
-      });
-      const studentName = marksSheet.students.find((s) => s.studentId === sid)?.studentName ?? '';
-      toast.success(`Saved ${studentName}'s marks`);
-      // mark locally as done and advance to the next unmarked student
-      const updated = marksSheet.students.map((s) =>
-        s.studentId === sid ? { ...s, marks: num, subject, totalMarks: total } : s
-      );
-      setMarksSheet({ ...marksSheet, students: updated });
-      setMarksDraft((d) => ({ ...d, [sid]: String(num) }));
-      const next = updated.find((s) => s.marks == null);
-      setMarksStudentId(next ? String(next.studentId) : '');
-      // when the next student is visible in the list, focus its marks input
-      requestAnimationFrame(() => {
-        const el = document.getElementById(`marks-${next?.studentId ?? sid}`);
-        el?.focus();
-      });
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save marks';
-      toast.error(msg);
-    } finally {
-      setMarksSaving(false);
-    }
-  }
-
-  // students shown in the marks list, filtered by the search box
-  const filteredStudents = (marksSheet?.students ?? []).filter((s) => {
-    const q = marksQuery.trim().toLowerCase();
-    if (!q) return true;
-    return s.studentName.toLowerCase().includes(q) || s.rollNumber.toLowerCase().includes(q);
-  });
 
   function openPdfModal(title: string, url: string) {
     setAnalyticsTitle(title);
@@ -699,118 +586,7 @@ export default function TestsPage() {
       </Modal>
 
       {/* ── Marks Entry Modal ── */}
-      <Modal
-        open={marksTest !== null}
-        onClose={() => setMarksTest(null)}
-        title={marksSheet ? `Enter Marks – ${marksSheet.test.title}` : 'Enter Marks'}
-        size="lg"
-        description={marksSheet
-          ? `${marksSheet.test.subject} · Total: ${marksSheet.test.total_marks} marks · ${marksSheet.students.length} students`
-          : 'Loading…'}
-      >
-        {marksLoading ? (
-          <div className="py-8 flex justify-center"><Spinner /></div>
-        ) : marksSheet ? (
-          <div className="space-y-4">
-            {/* progress + search */}
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs text-slate-500 flex-1">
-                {marksSheet.students.filter((s) => s.marks != null).length}
-                {' '}of {marksSheet.students.length} marked
-              </span>
-              <input
-                className="input w-56"
-                placeholder="Search student by name or roll no…"
-                value={marksQuery}
-                onChange={(e) => setMarksQuery(e.target.value)}
-              />
-            </div>
-
-            {/* scrollable inline list */}
-            <div className="max-h-[52vh] overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-200 dark:divide-slate-700/70">
-              {filteredStudents.map((s, i) => {
-                const marked = s.marks != null;
-                const activeRef = s.studentId === parseInt(marksStudentId, 10);
-                return (
-                  <div key={s.studentId} className={clsx('px-3 py-2.5 grid gap-2', activeRef ? 'bg-indigo-500/[0.04]' : '')}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {marked
-                          ? <span className="w-5 h-5 rounded-full bg-emerald-500/90 flex items-center justify-center flex-shrink-0"><Check className="w-3 h-3 text-white" /></span>
-                          : <span className="w-5 h-5 rounded-full bg-white/[0.04] border border-slate-600 flex items-center justify-center flex-shrink-0 text-[10px] text-slate-500">#{i + 1}</span>}
-                        <p className="text-sm font-semibold truncate">{s.studentName}</p>
-                        {s.rollNumber && <span className="text-[11px] text-slate-500">{s.rollNumber}</span>}
-                      </div>
-                      {marked ? (
-                        <span className="text-[11px] text-emerald-500 font-medium">Saved {s.marks}/{s.totalMarks}</span>
-                      ) : (
-                        <span className="text-[11px] text-amber-500/80">Not entered</span>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-[1fr_96px_96px_auto] gap-2 items-end">
-                      {/* subject */}
-                      <div>
-                        <input
-                          list="marks-subjects"
-                          className="input text-sm"
-                          placeholder="Subject"
-                          value={marksSubject[s.studentId] ?? ''}
-                          onChange={(e) => setMarksSubject((d) => ({ ...d, [s.studentId]: e.target.value }))}
-                        />
-                      </div>
-                      {/* out of */}
-                      <div>
-                        <input
-                          type="number"
-                          min={1}
-                          step="1"
-                          className="input text-sm text-center"
-                          placeholder="Out of"
-                          value={marksTotal[s.studentId] ?? ''}
-                          onChange={(e) => setMarksTotal((d) => ({ ...d, [s.studentId]: e.target.value }))}
-                        />
-                      </div>
-                      {/* marks */}
-                      <div>
-                        <input
-                          id={`marks-${s.studentId}`}
-                          type="number"
-                          min={0}
-                          step="0.5"
-                          max={Number(marksTotal[s.studentId]) || undefined}
-                          className="input text-sm text-center font-semibold"
-                          placeholder="Marks"
-                          value={marksDraft[s.studentId] ?? ''}
-                          onChange={(e) => setMarksDraft((d) => ({ ...d, [s.studentId]: e.target.value }))}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveStudentMarks(s.studentId); } }}
-                          onFocus={() => setMarksStudentId(String(s.studentId))}
-                        />
-                      </div>
-                      <button
-                        onClick={() => saveStudentMarks(s.studentId)}
-                        disabled={marksSaving}
-                        className="btn-primary text-xs px-3 py-2"
-                      >
-                        {marksSaving && activeRef ? <Spinner size="sm" light /> : 'Save'}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-              {!filteredStudents.length && (
-                <p className="py-8 text-center text-sm text-slate-500">No students match “{marksQuery}”.</p>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] text-slate-500">Type the subject, set out-of total (if different), enter marks, hit Enter or Save.</p>
-              <button onClick={() => setMarksTest(null)} className="btn-secondary text-sm">Done</button>
-            </div>
-          </div>
-        ) : (
-          <div className="py-8 text-center text-slate-500">Failed to load.</div>
-        )}
-      </Modal>
+      <EnterMarksModal open={marksTest !== null} test={marksTest} onClose={() => setMarksTest(null)} />
 
       {/* ── Edit Schedule Modal ── */}
       <Modal open={scheduleOpen} onClose={() => setScheduleOpen(false)} title="Edit Weekly Test Schedule" size="xl">

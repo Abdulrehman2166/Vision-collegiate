@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   generateTestPaper,
+  quickCreateTest,
   getAllTests,
   getTestById,
   exportTestPDF,
@@ -19,6 +20,7 @@ const router = Router();
 router.use(authenticate);
 
 router.post('/generate',                 authorize('admin', 'teacher'), generateTestPaper);
+router.post('/quick',                    authorize('admin', 'teacher'), quickCreateTest);
 router.get ('/',                         authorize('admin', 'teacher'), getAllTests);
 router.post('/reports/monthly-analytics', authorize('admin', 'teacher', 'parent', 'student'), generateMonthlyAnalytics);
 router.post('/:id/marks',                authorize('admin', 'teacher'), saveTestMarks);

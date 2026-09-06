@@ -9,7 +9,7 @@ import { clsx } from 'clsx';
 import {
   LayoutDashboard, Users, BookOpen, CalendarCheck, BarChart3,
   MessageSquare, LogOut, GraduationCap, X, ChevronLeft,
-  ShieldCheck, Settings,
+  ShieldCheck, Settings, ClipboardList,
 } from 'lucide-react';
 import { clearAuth, getUser } from '@/utils/auth';
 import api from '@/utils/api';
@@ -22,6 +22,7 @@ const NAV = [
   { href: '/batches',    label: 'Batches',    icon: GraduationCap,   roles: ['admin','teacher'],                    color: '#a855f7' },
   { href: '/attendance', label: 'Attendance', icon: CalendarCheck,   roles: ['admin','teacher'],                    color: '#10b981' },
   { href: '/tests',      label: 'Tests',      icon: BookOpen,        roles: ['admin','teacher','parent','student'], color: '#f59e0b' },
+  { href: '/scoring',    label: 'Scoring',    icon: ClipboardList,    roles: ['admin','teacher'],                    color: '#10b981' },
   { href: '/analytics',  label: 'Analytics',  icon: BarChart3,       roles: ['admin','teacher'],                    color: '#f43f5e' },
   { href: '/users',      label: 'Users',      icon: ShieldCheck,     roles: ['admin'],                              color: '#8b5cf6' },
   { href: '/whatsapp',   label: 'WhatsApp',   icon: MessageSquare,   roles: ['admin'],                              color: '#22c55e' },

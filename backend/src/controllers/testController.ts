@@ -138,6 +138,45 @@ export async function generateTestPaper(req: Request, res: Response, next: NextF
   }
 }
 
+/**
+ * POST /api/v1/tests/quick – create a lightweight custom test for marks entry.
+ * Unlike /generate it creates just the test row (no PDF / questions), so the
+ * teacher can immediately start entering marks. Options preserved.
+ */
+export async function quickCreateTest(req: Request, res: Response, next: NextFunction) {
+  try {
+    const schema = z.object({
+      title:         z.string().min(2),
+      subject:       z.string().min(1),
+      grade:         z.enum(['Juniors', 'IX', 'X', 'XI', 'XII']),
+      stream:        z.string().optional().nullable(),
+      batch_id:      z.number().int().positive().optional().nullable(),
+      total_marks:   z.number().int().positive().default(100),
+      duration_mins: z.number().int().positive().default(60),
+      test_date:     z.string().optional().nullable(),
+      board_pattern: z.string().optional().nullable(),
+    });
+    const data = schema.parse(req.body);
+    const createdBy = req.user!.id;
+    if (data.batch_id) await assertBatchAccess(req.user!, data.batch_id);
+
+    const result = await pool.query(
+      `INSERT INTO tests (title, subject, grade, stream, batch_id, total_marks, duration_mins,
+                          test_date, board_pattern, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      [
+        data.title.trim(), data.subject.trim(), data.grade, data.stream ?? null,
+        data.batch_id ?? null, data.total_marks, data.duration_mins,
+        data.test_date ?? null, data.board_pattern ?? null, createdBy,
+      ],
+    );
+
+    res.status(201).json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+}
+
 /** GET /api/v1/tests */
 export async function getAllTests(req: Request, res: Response, next: NextFunction) {
   try {
