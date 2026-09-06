@@ -5,7 +5,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Loading';
 import { EnterMarksModal, type MarksTarget } from '@/components/ui/EnterMarksModal';
-import { ClipboardList, Plus, CalendarRange, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
+import { ClipboardList, Plus, CalendarRange, ChevronLeft, ChevronRight, BookOpen, Download, X, BarChart3 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -52,6 +52,12 @@ export default function ScoringPage() {
 
   // marks modal
   const [marksTarget, setMarksTarget] = useState<MarksTarget | null>(null);
+
+  // analytics PDF
+  const [pdfTitle, setPdfTitle]         = useState('Monthly Analytics');
+  const [pdfUrl,   setPdfUrl]           = useState('');
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   const selected = batches.find((b) => b.id === Number(batchId));
   const gradeSchedule = schedule.find((g) => g.grade === selected?.grade);
@@ -149,6 +155,30 @@ export default function ScoringPage() {
     setWeek(next);
   }
 
+  async function generatePdf() {
+    if (!month) { toast.error('Select a month'); return; }
+    if (generatingPdf) return;
+    setGeneratingPdf(true);
+    try {
+      const res = await api.post<ApiResponse<{ url: string }>>('/tests/reports/monthly-analytics', {
+        month,
+        ...(batchId ? { batchId: Number(batchId) } : {}),
+      });
+      const label = batchId ? `Monthly Analytics – ${selected?.name ?? `Batch #${batchId}`}` : `Monthly Analytics – All Batches`;
+      setPdfTitle(`${label} · ${month}`);
+      if (res.data.data.url.startsWith('data:')) {
+        setPdfUrl('');
+      } else {
+        setPdfUrl(res.data.data.url);
+      }
+      setShowPdfModal(true);
+      toast.success('Analytics PDF generated');
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to generate report';
+      toast.error(msg);
+    } finally { setGeneratingPdf(false); }
+  }
+
   return (
     <AppShell>
       <div className="flex flex-col gap-4">
@@ -161,9 +191,14 @@ export default function ScoringPage() {
             </p>
           </div>
           {canCreate && (
-            <button onClick={() => openQuick()} className="btn-primary self-start sm:self-auto">
-              <Plus className="w-4 h-4" /> Custom Test
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={generatePdf} disabled={generatingPdf} className="btn-secondary self-start sm:self-auto">
+                {generatingPdf ? <><Spinner size="sm" /> Generating…</> : <><BarChart3 className="w-4 h-4" /> PDF Report</>}
+              </button>
+              <button onClick={() => openQuick()} className="btn-primary self-start sm:self-auto">
+                <Plus className="w-4 h-4" /> Custom Test
+              </button>
+            </div>
           )}
         </div>
 
@@ -263,6 +298,40 @@ export default function ScoringPage() {
       </Modal>
 
       <EnterMarksModal open={marksTarget !== null} test={marksTarget} onClose={() => setMarksTarget(null)} onSaved={loadTests} />
+
+      {/* ── PDF Preview Modal ── */}
+      {showPdfModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="font-semibold text-slate-900 dark:text-white">{pdfTitle}</h3>
+              <button onClick={() => setShowPdfModal(false)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-2">
+              {pdfUrl ? (
+                <iframe
+                  key={pdfUrl}
+                  src={pdfUrl}
+                  title="Analytics Report"
+                  className="w-full h-full min-h-[500px] border-0 rounded-lg"
+                />
+              ) : (
+                <p className="py-10 text-center text-slate-500">Report preview unavailable — use the download option below.</p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 dark:border-slate-700">
+              {pdfUrl && (
+                <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm">
+                  <Download className="w-4 h-4 inline mr-1" /> Open / Download
+                </a>
+              )}
+              <button onClick={() => setShowPdfModal(false)} className="btn-secondary text-sm">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
