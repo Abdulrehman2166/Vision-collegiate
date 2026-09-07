@@ -10,7 +10,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Send, Download, ChevronDown, ChevronUp, ClipboardList, BarChart3, FileSpreadsheet, X, CalendarRange } from 'lucide-react';
+import { Plus, Trash2, Send, Download, ChevronDown, ChevronUp, ClipboardList, BarChart3, FileSpreadsheet, X, CalendarRange, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import api, { type ApiResponse, type Test, type Batch } from '@/utils/api';
 import { hasRole } from '@/utils/auth';
@@ -65,6 +65,10 @@ export default function TestsPage() {
 
   // marks entry — uses the shared EnterMarksModal
   const [marksTest, setMarksTest] = useState<MarksTarget | null>(null);
+
+  // inline "out of" editor
+  const [outOfEdit, setOutOfEdit] = useState<{ id: number; value: string } | null>(null);
+  const [savingOutOf, setSavingOutOf] = useState(false);
 
   // analytics reports
   const [reportMonth, setReportMonth] = useState(format(new Date(), 'yyyy-MM'));
@@ -217,6 +221,22 @@ export default function TestsPage() {
     } finally { setGeneratingKind(null); }
   }
 
+  async function saveOutOf() {
+    if (!outOfEdit) return;
+    const value = parseInt(outOfEdit.value, 10);
+    if (!value || value <= 0) { toast.error('Enter a valid out-of total'); return; }
+    setSavingOutOf(true);
+    try {
+      await api.patch<ApiResponse<Test>>(`/tests/${outOfEdit.id}`, { total_marks: value });
+      setTests((prev) => prev.map((t) => (t.id === outOfEdit.id ? { ...t, total_marks: value } : t)));
+      setOutOfEdit(null);
+      toast.success('Out-of total updated');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to update';
+      toast.error(msg);
+    } finally { setSavingOutOf(false); }
+  }
+
   async function saveSchedule() {
     setSavingSchedule(true);
     try {
@@ -240,7 +260,38 @@ export default function TestsPage() {
     { key: 'subject',       header: 'Subject' },
     { key: 'grade',         header: 'Grade',  render: (t: Test) => `${t.grade}${t.stream ? ' – '+t.stream : ''}` },
     { key: 'batch_name',    header: 'Batch',  render: (t: Test) => t.batch_name ?? '—' },
-    { key: 'total_marks',   header: 'Marks' },
+    { key: 'total_marks', header: 'Out of (Marks)', render: (t: Test) => (
+      <div className="flex items-center gap-2">
+        {outOfEdit?.id === t.id ? (
+          <div className="flex items-center gap-1">
+            <input
+              autoFocus
+              type="number"
+              min={1}
+              value={outOfEdit.value}
+              onChange={(e) => setOutOfEdit({ id: t.id, value: e.target.value })}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveOutOf(); if (e.key === 'Escape') setOutOfEdit(null); }}
+              className="w-20 input py-1 text-sm"
+            />
+            <button onClick={saveOutOf} disabled={savingOutOf} className="btn-primary py-1 px-2 text-xs">Save</button>
+            <button onClick={() => setOutOfEdit(null)} className="btn-ghost py-1 px-2 text-xs">✕</button>
+          </div>
+        ) : (
+          <>
+            <span className="font-semibold tabular-nums text-slate-800 dark:text-slate-100">{t.total_marks}</span>
+            {canCreate && (
+              <button
+                onClick={() => setOutOfEdit({ id: t.id, value: String(t.total_marks) })}
+                className="p-1 rounded-md text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+                title="Edit out-of marks"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    ) },
     { key: 'test_date',     header: 'Date',   render: (t: Test) => t.test_date ? format(new Date(t.test_date), 'dd MMM yyyy') : '—' },
     {
       key: 'actions',

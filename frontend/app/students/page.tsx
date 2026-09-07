@@ -8,9 +8,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, LayoutGrid, Table2, Users } from 'lucide-react';
 import api, { type ApiResponse, type Student, type Batch } from '@/utils/api';
 import { hasRole } from '@/utils/auth';
+import { PerformancePersona, type PerformanceStudent } from '@/components/students/PerformancePersona';
+import { Spinner } from '@/components/ui/Loading';
 
 const schema = z.object({
   name:          z.string().min(2, 'Name is required'),
@@ -35,6 +37,11 @@ export default function StudentsPage() {
   const [page,     setPage]     = useState(1);
   const [total,    setTotal]    = useState(0);
   const [pages,    setPages]    = useState(1);
+
+  // Performance IQ (futuristic persona view)
+  const [view,         setView]         = useState<'table' | 'persona'>('table');
+  const [performance,  setPerformance]  = useState<PerformanceStudent[]>([]);
+  const [perfLoading,  setPerfLoading]  = useState(false);
 
   // Filters
   const [search,  setSearch]   = useState('');
@@ -74,6 +81,26 @@ export default function StudentsPage() {
       .then((r) => setBatches(r.data.data))
       .catch(() => {});
   }, []);
+
+  // Load the futuristic performance portrait set when persona view is first opened
+  useEffect(() => {
+    if (view !== 'persona' || performance.length > 0 || perfLoading) return;
+    setPerfLoading(true);
+    api.get<ApiResponse<PerformanceStudent[]>>('/students/performance')
+      .then((r) => setPerformance(r.data.data))
+      .catch(() => toast.error('Failed to load performance portraits'))
+      .finally(() => setPerfLoading(false));
+  }, [view, performance.length, perfLoading]);
+
+  // Client-side filtering for the portrait gallery (server page is table-only)
+  const selectedBatchName = batches.find((b) => String(b.id) === fBatch)?.name;
+  const perfFiltered = performance.filter((p) => {
+    const q = search.toLowerCase();
+    const matchQ     = !q || p.name.toLowerCase().includes(q) || (p.rollNumber ?? '').toLowerCase().includes(q);
+    const matchGrade = !fGrade || p.grade === fGrade;
+    const matchBatch = !fBatch || p.batchName === selectedBatchName;
+    return matchQ && matchGrade && matchBatch;
+  }).sort((a, b) => a.rank - b.rank);
 
   function openCreate() {
     setEditStudent(null);
@@ -177,11 +204,31 @@ export default function StudentsPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Students</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">{total} total students</p>
         </div>
-        {isAdmin && (
-          <button onClick={openCreate} className="btn-primary self-start sm:self-auto">
-            <Plus className="w-4 h-4" /> Add Student
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Futuristic view toggle */}
+          <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            {([
+              { key: 'table',   label: 'Grid',   icon: Table2 },
+              { key: 'persona', label: 'Personas', icon: LayoutGrid },
+            ] as const).map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                onClick={() => setView(key)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                style={view === key
+                  ? { background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: '#fff', boxShadow: '0 0 16px -4px rgba(139,92,246,0.7)' }
+                  : { color: '#94a3b8' }}
+              >
+                <Icon className="w-3.5 h-3.5" /> {label}
+              </button>
+            ))}
+          </div>
+          {isAdmin && (
+            <button onClick={openCreate} className="btn-primary self-start sm:self-auto">
+              <Plus className="w-4 h-4" /> Add Student
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -206,9 +253,24 @@ export default function StudentsPage() {
       </div>
 
       <div className="card p-0 overflow-hidden">
-        <Table columns={columns} data={students} keyField="id" loading={loading} emptyMessage="No students found." />
+        {view === 'table' ? (
+          <Table columns={columns} data={students} keyField="id" loading={loading} emptyMessage="No students found." />
+        ) : perfLoading ? (
+          <div className="flex items-center justify-center gap-3 py-16">
+            <Spinner /> <span className="text-sm text-slate-400">Calibrating performance portraits…</span>
+          </div>
+        ) : (
+          <div className="p-4">
+            {perfFiltered.length === 0
+              ? <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-500">
+                  <Users className="w-8 h-8" />
+                  <span className="text-sm">No portraits matched the filters.</span>
+                </div>
+              : <PerformancePersona students={perfFiltered} />}
+          </div>
+        )}
       </div>
-      <Pagination page={page} pages={pages} total={total} onPage={setPage} />
+      {view === 'table' && <Pagination page={page} pages={pages} total={total} onPage={setPage} />}
 
       {/* Create / Edit Modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)}

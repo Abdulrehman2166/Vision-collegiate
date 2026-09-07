@@ -177,6 +177,59 @@ export async function quickCreateTest(req: Request, res: Response, next: NextFun
   }
 }
 
+/** PATCH /api/v1/tests/:id – update editable fields on any test (e.g. custom out-of marks). */
+export async function updateTest(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params;
+    const schema = z.object({
+      title:         z.string().min(2).optional(),
+      subject:       z.string().min(1).optional(),
+      grade:         z.enum(['Juniors', 'IX', 'X', 'XI', 'XII']).optional(),
+      stream:        z.string().nullable().optional(),
+      batch_id:      z.number().int().positive().nullable().optional(),
+      total_marks:   z.number().int().positive().optional(),
+      duration_mins: z.number().int().positive().optional(),
+      test_date:     z.string().nullable().optional(),
+    });
+    const data = schema.parse(req.body);
+
+    const testRes = await pool.query('SELECT * FROM tests WHERE id = $1', [id]);
+    if (!testRes.rows.length) throw createError('Test not found', 404);
+    const test = testRes.rows[0];
+    await assertTestAccess(req.user!, test);
+    await assertBatchAccess(req.user!, Number(test.batch_id));
+
+    const fields: string[] = [];
+    const params: (string | number | null)[] = [];
+    let p = 1;
+    const row: Record<string, string | number | null> = {};
+    if (data.title !== undefined)        { fields.push(`title = $${p++}`);            params.push(data.title);          row.title = data.title; }
+    if (data.subject !== undefined)      { fields.push(`subject = $${p++}`);          params.push(data.subject);        row.subject = data.subject; }
+    if (data.grade !== undefined)        { fields.push(`grade = $${p++}`);            params.push(data.grade);          row.grade = data.grade; }
+    if (data.stream !== undefined)       { fields.push(`stream = $${p++}`);           params.push(data.stream);         row.stream = data.stream; }
+    if (data.batch_id !== undefined)     { fields.push(`batch_id = $${p++}`);         params.push(data.batch_id);       row.batch_id = data.batch_id; }
+    if (data.total_marks !== undefined)  { fields.push(`total_marks = $${p++}`);      params.push(data.total_marks);    row.total_marks = data.total_marks; }
+    if (data.duration_mins !== undefined){ fields.push(`duration_mins = $${p++}`);    params.push(data.duration_mins);  row.duration_mins = data.duration_mins; }
+    if (data.test_date !== undefined)    { fields.push(`test_date = $${p++}`);        params.push(data.test_date);      row.test_date = data.test_date; }
+
+    if (!fields.length) {
+      res.json({ success: true, data: test });
+      return;
+    }
+
+    fields.push(`updated_at = NOW()`);
+    params.push(id);
+    const result = await pool.query(
+      `UPDATE tests SET ${fields.join(', ')} WHERE id = $${p} RETURNING *`,
+      params,
+    );
+
+    res.json({ success: true, data: { ...result.rows[0], ...row } });
+  } catch (err) {
+    next(err);
+  }
+}
+
 /** GET /api/v1/tests */
 export async function getAllTests(req: Request, res: Response, next: NextFunction) {
   try {

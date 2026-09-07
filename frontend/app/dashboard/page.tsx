@@ -17,6 +17,7 @@ import api, {
   type ApiResponse, type AnalyticsSummary,
   type TrendPoint, type LowAttendanceAlert,
 } from '@/utils/api';
+import type { PerformanceStudent } from '@/components/students/PerformancePersona';
 import { getUser } from '@/utils/auth';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -76,10 +77,17 @@ export default function DashboardPage() {
   const [trend, setTrend]     = useState<TrendPoint[]>([]);
   const [alerts, setAlerts]   = useState<LowAttendanceAlert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [leaders, setLeaders] = useState<PerformanceStudent[]>([]);
   const [today, setToday]     = useState(format(new Date(), 'yyyy-MM-dd'));
   const [isWorkingDate, setIsWorkingDate] = useState(false);
 
   useEffect(() => { setUser(getUser()); }, []);
+
+  useEffect(() => {
+    api.get<ApiResponse<PerformanceStudent[]>>('/students/performance')
+      .then((r) => setLeaders(r.data.data.slice(0, 5)))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     getWorkingDate().then((d) => {
@@ -352,6 +360,47 @@ export default function DashboardPage() {
                 })}
               </div>
             </div>
+
+            {/* Energy Leaders — futuristic top-performers HUD */}
+            {leaders.length > 0 && (
+              <div className="card p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="icon-chip w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(236,72,153,0.15))' }}>
+                    <TrendingUp size={14} style={{ color: '#f59e0b' }} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white tracking-wide" style={{ letterSpacing: '0.06em' }}>ENERGY LEADERS</p>
+                    <p className="text-[10px] text-slate-500">Top performance IQ right now</p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {leaders.map((p, i) => (
+                    <motion.div
+                      key={p.studentId}
+                      initial={{ opacity: 0, x: 12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.35 + i * 0.07 }}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2"
+                      style={{ background: `linear-gradient(90deg, ${p.tierColor}14, transparent)`, border: `1px solid ${p.tierColor}28` }}
+                    >
+                      <span className="text-sm font-black" style={{ color: p.tierColor, width: 16, textShadow: `0 0 10px ${p.tierColor}80` }}>
+                        {i + 1}
+                      </span>
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style={{ background: `${p.tierColor}1f`, border: `1px solid ${p.tierColor}40` }}>
+                        {p.roleIcon}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-white truncate">{p.name}</p>
+                        <p className="text-[10px] text-slate-500 truncate">{p.role} · {p.batchName ?? `Grade ${p.grade}`}</p>
+                      </div>
+                      <span className="text-xs font-black tabular-nums" style={{ color: p.tierColor, textShadow: `0 0 12px ${p.tierColor}90` }}>
+                        {p.performanceIQ} <span className="text-[9px] font-bold opacity-70">IQ</span>
+                      </span>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* User card */}
             {user && (
