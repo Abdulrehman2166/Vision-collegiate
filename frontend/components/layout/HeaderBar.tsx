@@ -131,6 +131,15 @@ export function HeaderBar() {
           className="absolute top-0 left-0 right-0 h-px pointer-events-none"
           style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(99,102,241,0.3) 50%, transparent 100%)' }}
         />
+        {/* Animated energy beam on the bottom edge */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.55) 20%, rgba(236,72,153,0.55) 50%, rgba(99,102,241,0.55) 80%, transparent 100%)',
+            backgroundSize: '220% 100%',
+            animation: 'beamFlow 5s linear infinite',
+          }}
+        />
 
         {/* Breadcrumbs */}
         <nav className="hidden sm:flex items-center gap-1.5 text-sm min-w-0 flex-1">

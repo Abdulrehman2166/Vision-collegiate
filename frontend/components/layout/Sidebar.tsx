@@ -52,10 +52,18 @@ const NavItem = memo(function NavItem({
         active ? 'nav-item-active text-white' : 'text-slate-400 hover:text-white hover:bg-white/[0.04]',
       )}
       style={active ? {
-        background: `linear-gradient(135deg, ${item.color}1a, ${item.color}0f)`,
-        border: `1px solid ${item.color}28`,
+        background: `linear-gradient(135deg, ${item.color}26, ${item.color}10)`,
+        border: `1px solid ${item.color}40`,
+        boxShadow: `0 0 18px -6px ${item.color}90, inset 0 1px 0 rgba(255,255,255,0.06)`,
       } : { border: '1px solid transparent' }}
     >
+      {/* Active neon edge indicator */}
+      {active && (
+        <span
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 rounded-full"
+          style={{ background: item.color, boxShadow: `0 0 12px ${item.color}, 0 0 24px ${item.color}90` }}
+        />
+      )}
       {/* Icon container */}
       <span
         className="relative flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 group-hover:scale-110 group-hover:brightness-110"
@@ -199,7 +207,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           >
             <div className="flex items-center gap-2.5">
               <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-black flex-shrink-0"
+                className="icon-chip w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-black flex-shrink-0"
                 style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)' }}
               >
                 {user.name?.charAt(0)?.toUpperCase() ?? 'U'}

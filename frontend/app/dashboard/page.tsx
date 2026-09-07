@@ -42,6 +42,34 @@ function greeting() {
   return h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
 }
 
+/** Eased count-up hook for KPI numbers. */
+function useCountUp(target: number, duration = 900) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      setVal(Math.round(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return val;
+}
+
+function StatValue({ value, suffix = '', prefix = '' }: { value: number; suffix?: string; prefix?: string }) {
+  const v = useCountUp(value);
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '1px' }}>
+      {prefix && <span style={{ color: '#94a3b8' }}>{prefix}</span>}
+      <span>{v.toLocaleString()}</span>
+      {suffix && <span style={{ fontSize: '18px', fontWeight: 800, color: '#94a3b8' }}>{suffix}</span>}
+    </span>
+  );
+}
+
 export default function DashboardPage() {
   const [user, setUser] = useState<ReturnType<typeof getUser>>(null);
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
@@ -116,33 +144,23 @@ export default function DashboardPage() {
           transition={{ duration: 0.4 }}
           style={{ marginBottom: '28px' }}
         >
-          <p style={{
-            fontSize:'11px', fontWeight:700, textTransform:'uppercase',
-            letterSpacing:'0.12em', color:'#475569',
-            display:'flex', alignItems:'center', gap:'6px', marginBottom:'8px',
-          }}>
-            <Clock size={13} />
+          <p className="hud-chip" style={{ marginBottom: '12px' }}>
+            <Clock size={12} />
             {format(new Date(`${today}T12:00:00`), 'EEEE, MMMM d, yyyy')}
             {isWorkingDate && (
-              <span style={{ marginLeft:'6px', padding:'2px 8px', borderRadius:'99px', fontSize:'9px', fontWeight:800, background:'rgba(245,158,11,0.15)', color:'#fbbf24', border:'1px solid rgba(245,158,11,0.25)' }}>
+              <span style={{ padding:'2px 8px', borderRadius:'99px', fontSize:'9px', fontWeight:800, background:'rgba(245,158,11,0.2)', color:'#fbbf24', border:'1px solid rgba(245,158,11,0.35)' }}>
                 Working date
               </span>
             )}
           </p>
-          <h1 style={{ fontSize:'clamp(22px,4vw,30px)', fontWeight:900, letterSpacing:'-0.02em', color:'#f1f5f9', lineHeight:1.2, margin:0 }}>
+          <h1 className="title-beam" style={{ fontSize:'clamp(22px,4vw,30px)', fontWeight:900, letterSpacing:'-0.02em', lineHeight:1.2, margin:0, paddingBottom:'12px' }}>
             Good {greeting()},{' '}
-            <span style={{
-              background:'linear-gradient(135deg, #818cf8, #c084fc, #818cf8)',
-              backgroundSize:'200%',
-              WebkitBackgroundClip:'text',
-              WebkitTextFillColor:'transparent',
-              backgroundClip:'text',
-            }}>
+            <span className="text-gradient text-gradient-anim text-glow">
               {user?.name?.split(' ')[0] ?? 'there'}
             </span>{' '}
             <span className="animate-float" style={{ display:'inline-block' }}>👋</span>
           </h1>
-          <p style={{ fontSize:'13px', color:'#64748b', marginTop:'6px' }}>
+          <p style={{ fontSize:'13px', color:'#64748b', marginTop:'8px' }}>
             Your institute overview for today
           </p>
         </motion.div>
@@ -189,8 +207,12 @@ export default function DashboardPage() {
                     {cfg.title}
                   </p>
                   {/* Value */}
-                  <p style={{ fontSize:'32px', fontWeight:900, color:'#f1f5f9', letterSpacing:'-0.03em', lineHeight:1, margin:0 }}>
-                    {val}
+                  <p style={{ fontSize:'32px', fontWeight:900, color:'#f1f5f9', letterSpacing:'-0.03em', lineHeight:1, margin:0, textShadow:`0 0 24px ${dotColor}40` }}>
+                    {cfg.key === 'pct' ? (
+                      <StatValue value={pct} suffix="%" />
+                    ) : (
+                      <StatValue value={typeof val === 'number' ? val : Number(val) || 0} />
+                    )}
                   </p>
                 </motion.div>
               );
