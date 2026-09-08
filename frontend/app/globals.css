@@ -63,7 +63,11 @@
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(99,102,241,0.3), transparent);
+    background: linear-gradient(90deg, transparent 5%,
+                rgba(99,102,241,0.28) 25%,
+                rgba(232,121,249,0.4) 55%,
+                rgba(56,189,248,0.3) 80%,
+                transparent 95%);
     pointer-events: none;
   }
 
@@ -384,19 +388,19 @@
   .ambient-blob-2 {
     width: 760px; height: 760px;
     top: 18%; right: -260px;
-    background: radial-gradient(circle, rgba(168,85,247,0.34), transparent 70%);
+    background: radial-gradient(circle, rgba(217,70,239,0.34), transparent 70%);
     animation: blobFloat 22s ease-in-out infinite alternate-reverse;
   }
   .ambient-blob-3 {
     width: 560px; height: 560px;
     bottom: -220px; left: 24%;
-    background: radial-gradient(circle, rgba(37,99,235,0.32), transparent 70%);
+    background: radial-gradient(circle, rgba(56,189,248,0.3), transparent 70%);
     animation: blobFloat 26s ease-in-out infinite alternate;
   }
   .ambient-blob-4 {
     width: 460px; height: 460px;
     top: 44%; left: -160px;
-    background: radial-gradient(circle, rgba(244,114,182,0.2), transparent 70%);
+    background: radial-gradient(circle, rgba(16,185,129,0.2), transparent 70%);
     animation: blobFloat 20s ease-in-out infinite alternate-reverse 2s;
   }
   @keyframes blobFloat {
@@ -412,11 +416,12 @@
     transform: translate(-50%, -50%);
     background: conic-gradient(from 0deg at 50% 50%,
       transparent 0deg,
-      rgba(99,102,241,0.10) 70deg,
+      rgba(99,102,241,0.12) 70deg,
       transparent 140deg,
-      rgba(168,85,247,0.10) 220deg,
+      rgba(217,70,239,0.12) 220deg,
       transparent 300deg,
-      rgba(37,99,235,0.10) 360deg);
+      rgba(16,185,129,0.1) 340deg,
+      transparent 360deg);
     animation: energySpin 34s linear infinite;
     mix-blend-mode: screen;
   }

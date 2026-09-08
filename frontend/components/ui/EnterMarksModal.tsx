@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Loading';
-import { Check, Search, Wand2, BookOpen, CalendarCheck } from 'lucide-react';
+import { Check, Search, Wand2, BookOpen, CalendarCheck, Target, Pencil } from 'lucide-react';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import api from '@/utils/api';
@@ -64,6 +64,8 @@ export function EnterMarksModal({ open, test, onClose, onSaved }: Props) {
   const [saving,    setSaving]    = useState(false);
   const [bulkSubject, setBulkSubject] = useState('');
   const [bulkTotal,   setBulkTotal]   = useState('');
+  const [testTotal,   setTestTotal]   = useState('');
+  const [savingTotal, setSavingTotal] = useState(false);
 
   useEffect(() => {
     if (!open || !test) return;
@@ -76,11 +78,13 @@ export function EnterMarksModal({ open, test, onClose, onSaved }: Props) {
     setQuery('');
     setBulkSubject('');
     setBulkTotal('');
+    setTestTotal('');
     setActiveId(null);
     api.get<{ success: boolean; data: MarksSheet }>(`/tests/${test.id}/marks`)
       .then((r) => {
         if (cancelled) return;
         setSheet(r.data.data);
+        setTestTotal(String(r.data.data.test.total_marks));
         setDrafts(Object.fromEntries(
           r.data.data.students.map((s) => [s.studentId, s.marks == null ? '' : String(s.marks)]),
         ));
@@ -138,6 +142,25 @@ export function EnterMarksModal({ open, test, onClose, onSaved }: Props) {
       toast.error(msg);
     } finally {
       setSaving(false);
+    }
+  }
+
+  /** Persist the test's own out-of total so it updates everywhere (row, card, analytics). */
+  async function saveTestTotal() {
+    if (!sheet) return;
+    const v = parseFloat(testTotal);
+    if (!testTotal.trim() || isNaN(v) || v <= 0) { toast.error('Enter a valid out-of total'); return; }
+    setSavingTotal(true);
+    try {
+      await api.patch(`/tests/${sheet.test.id}`, { total_marks: v });
+      setSheet((prev) => (prev ? { ...prev, test: { ...prev.test, total_marks: v } } : prev));
+      toast.success(`Test out of updated to ${v}`);
+      onSaved?.();
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to update test total';
+      toast.error(msg);
+    } finally {
+      setSavingTotal(false);
     }
   }
 
@@ -200,6 +223,35 @@ export function EnterMarksModal({ open, test, onClose, onSaved }: Props) {
                   boxShadow: '0 0 10px rgba(99,102,241,0.5)',
                 }}
               />
+            </div>
+          </div>
+
+          {/* test out-of total — teacher controls the marks value of this test */}
+          <div className="rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3"
+               style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.07))', border: '1px solid rgba(139,92,246,0.35)' }}>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="icon-chip w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(168,85,247,0.18))' }}>
+                <Target className="w-4 h-4 text-indigo-300" style={{ filter: 'drop-shadow(0 0 6px rgba(129,140,248,0.8))' }} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-white tracking-wide" style={{ letterSpacing: '0.06em' }}>TEST OUT OF</p>
+                <p className="text-[10px] text-slate-500 truncate">Set the full marks of this test — applied everywhere</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                step="1"
+                className="input text-sm text-center w-24 font-bold"
+                value={testTotal}
+                placeholder={sheet.test.total_marks ? String(sheet.test.total_marks) : 'Total'}
+                onChange={(e) => setTestTotal(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveTestTotal(); }}
+              />
+              <button onClick={saveTestTotal} disabled={savingTotal} className="btn-primary text-xs px-3 py-2 whitespace-nowrap">
+                {savingTotal ? <><Spinner size="sm" light /> Saving…</> : <><Pencil className="w-3.5 h-3.5" /> Set Total</>}
+              </button>
             </div>
           </div>
 

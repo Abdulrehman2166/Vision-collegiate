@@ -5,7 +5,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Loading';
 import { EnterMarksModal, type MarksTarget } from '@/components/ui/EnterMarksModal';
-import { ClipboardList, Plus, CalendarRange, ChevronLeft, ChevronRight, BookOpen, Download, X, BarChart3 } from 'lucide-react';
+import { ClipboardList, Plus, CalendarRange, ChevronLeft, ChevronRight, BookOpen, Download, X, BarChart3, Pencil } from 'lucide-react';
 import { clsx } from 'clsx';
 import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -252,6 +252,7 @@ export default function ScoringPage() {
                   findExisting={(day, subject) => findExisting(day, subject)}
                   onEnterMarks={(t) => setMarksTarget({ id: t.id, title: t.title, subject: t.subject, total_marks: t.total_marks, test_date: t.test_date })}
                   onCustom={() => openQuick(slot.day, slot.subject)}
+                  onTotalUpdated={loadTests}
                 />
               ))}
             </div>
@@ -339,7 +340,7 @@ export default function ScoringPage() {
 // ───────────────────────────────────────────────────────────────────────────────
 // Day column — one scheduled test slot per day
 // ───────────────────────────────────────────────────────────────────────────────
-function DayColumn({ slot, month, week, batchId, canCreate, loading, findExisting, onEnterMarks, onCustom }: {
+function DayColumn({ slot, month, week, batchId, canCreate, loading, findExisting, onEnterMarks, onCustom, onTotalUpdated }: {
   slot: ScheduleDay;
   month: string;
   week: number;
@@ -349,8 +350,32 @@ function DayColumn({ slot, month, week, batchId, canCreate, loading, findExistin
   findExisting: (day: string, subject: string) => Test | undefined;
   onEnterMarks: (t: Test) => void;
   onCustom: () => void;
+  onTotalUpdated: () => void;
 }) {
   const existing = findExisting(slot.day, slot.subject);
+
+  // inline out-of total editor for the slot's test
+  const [editingTotal, setEditingTotal] = useState(false);
+  const [totalValue,   setTotalValue]   = useState('');
+  const [savingTotal,  setSavingTotal]  = useState(false);
+
+  async function saveTotal() {
+    if (!existing) return;
+    const v = parseInt(totalValue, 10);
+    if (!v || v <= 0) { toast.error('Enter a valid out-of total'); return; }
+    setSavingTotal(true);
+    try {
+      await api.patch(`/tests/${existing.id}`, { total_marks: v });
+      toast.success(`Out of updated to ${v}`);
+      setEditingTotal(false);
+      onTotalUpdated();
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to update';
+      toast.error(msg);
+    } finally {
+      setSavingTotal(false);
+    }
+  }
 
   return (
     <div className="card p-4 flex flex-col gap-3">
@@ -383,6 +408,38 @@ function DayColumn({ slot, month, week, batchId, canCreate, loading, findExistin
         ) : existing ? (
           <div>
             <p className="text-[11px] text-slate-500 mb-1">{existing.title}</p>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-semibold text-slate-400">Out of</span>
+              {editingTotal ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    autoFocus
+                    type="number"
+                    min={1}
+                    value={totalValue}
+                    onChange={(e) => setTotalValue(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') saveTotal(); if (e.key === 'Escape') setEditingTotal(false); }}
+                    className="input w-16 py-0.5 px-1.5 text-xs text-center font-bold"
+                  />
+                  <button onClick={saveTotal} disabled={savingTotal} className="btn-primary text-[10px] px-2 py-0.5">
+                    {savingTotal ? '…' : 'OK'}
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-black text-white tabular-nums">{existing.total_marks}</span>
+                  {canCreate && (
+                    <button
+                      onClick={() => { setTotalValue(String(existing.total_marks)); setEditingTotal(true); }}
+                      className="p-0.5 rounded text-slate-500 hover:text-indigo-300"
+                      title="Edit out-of marks"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
             <button onClick={() => onEnterMarks(existing)} className="btn-primary text-xs w-full py-1.5">
               <ClipboardList className="w-3.5 h-3.5 inline mr-1" /> Enter Marks
             </button>
