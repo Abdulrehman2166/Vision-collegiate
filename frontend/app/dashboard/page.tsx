@@ -175,11 +175,11 @@ export default function DashboardPage() {
 
         {/* ── KPI Cards ── */}
         {loading ? (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:'16px', marginBottom:'24px' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(150px, 1fr))', gap:'14px', marginBottom:'24px' }}>
             {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:'16px', marginBottom:'24px' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(150px, 1fr))', gap:'14px', marginBottom:'24px' }}>
             {STAT_CONFIGS.map((cfg, i) => {
               const Icon = cfg.icon;
               const val  = statValues[cfg.key];

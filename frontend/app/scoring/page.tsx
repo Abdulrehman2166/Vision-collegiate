@@ -237,9 +237,9 @@ export default function ScoringPage() {
             No schedule found for {selected?.grade}{selected?.stream ? ` (${selected.stream})` : ''} week {week}.
           </div>
         ) : (
-          <div>
+          <div className="overflow-x-auto pb-2">
             {/* Day column headers */}
-            <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${weekDays.length}, minmax(220px, 1fr))` }}>
+            <div className="grid gap-3 min-w-fit" style={{ gridTemplateColumns: `repeat(${weekDays.length}, minmax(220px, 1fr))` }}>
               {weekDays.map((slot) => (
                 <DayColumn
                   key={`${slot.day}-${slot.subject}`}

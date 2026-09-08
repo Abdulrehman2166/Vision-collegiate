@@ -7,7 +7,7 @@ import {
   Search, Bell, ChevronRight, Command, X,
   Users, CalendarCheck, BookOpen, BarChart3,
   LayoutDashboard, GraduationCap, MessageSquare,
-  LogOut, Settings, User,
+  LogOut, Settings, User, TrendingUp,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -19,6 +19,7 @@ import toast from 'react-hot-toast';
 // ─── Breadcrumb config ─────────────────────────────────────────────────────────
 const CRUMBS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   '/dashboard':  { label: 'Dashboard',  icon: <LayoutDashboard className="w-3.5 h-3.5" />, color: '#6366f1' },
+  '/progress':   { label: 'My Progress', icon: <TrendingUp        className="w-3.5 h-3.5" />, color: '#f59e0b' },
   '/students':   { label: 'Students',   icon: <Users           className="w-3.5 h-3.5" />, color: '#06b6d4' },
   '/batches':    { label: 'Batches',    icon: <GraduationCap   className="w-3.5 h-3.5" />, color: '#a855f7' },
   '/attendance': { label: 'Attendance', icon: <CalendarCheck   className="w-3.5 h-3.5" />, color: '#10b981' },

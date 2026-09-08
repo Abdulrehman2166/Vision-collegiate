@@ -10,7 +10,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Send, Download, ChevronDown, ChevronUp, ClipboardList, BarChart3, FileSpreadsheet, X, CalendarRange, Pencil } from 'lucide-react';
+import { Plus, Trash2, Send, Download, ChevronDown, ChevronUp, ClipboardList, BarChart3, FileSpreadsheet, X, CalendarRange, Pencil, UserRound } from 'lucide-react';
 import { format } from 'date-fns';
 import api, { type ApiResponse, type Test, type Batch } from '@/utils/api';
 import { hasRole } from '@/utils/auth';
@@ -336,6 +336,18 @@ export default function TestsPage() {
           </button>
         )}
       </div>
+
+      {/* Read-only hint for students / parents */}
+      {!canCreate && (
+        <div className="card p-4 mb-5 flex items-center gap-3 flex-wrap"
+          style={{ border: '1px solid rgba(245,158,11,0.22)', background: 'rgba(245,158,11,0.04)' }}>
+          <UserRound className="w-5 h-5 text-amber-300 flex-shrink-0" />
+          <p className="text-sm text-slate-300 flex-1 min-w-[200px]">
+            This area is read-only. Follow <span className="text-amber-300 font-bold">My Progress</span> in the sidebar to see marks,
+            attendance, rank and your personal Performance IQ.
+          </p>
+        </div>
+      )}
 
       {/* Master Weekly Test Schedule */}
       <div className="card p-4 sm:p-5 mb-5">

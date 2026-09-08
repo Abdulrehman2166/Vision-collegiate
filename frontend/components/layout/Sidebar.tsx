@@ -9,7 +9,7 @@ import { clsx } from 'clsx';
 import {
   LayoutDashboard, Users, BookOpen, CalendarCheck, BarChart3,
   MessageSquare, LogOut, GraduationCap, X, ChevronLeft,
-  ShieldCheck, Settings, ClipboardList,
+  ShieldCheck, Settings, ClipboardList, TrendingUp,
 } from 'lucide-react';
 import { clearAuth, getUser } from '@/utils/auth';
 import api from '@/utils/api';
@@ -18,6 +18,7 @@ import toast from 'react-hot-toast';
 // ─── Nav items ─────────────────────────────────────────────────────────────────
 const NAV = [
   { href: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard, roles: ['admin','teacher','parent','student'], color: '#6366f1' },
+  { href: '/progress',   label: 'My Progress', icon: TrendingUp,     roles: ['parent','student'],                    color: '#f59e0b' },
   { href: '/students',   label: 'Students',   icon: Users,           roles: ['admin','teacher'],                    color: '#06b6d4' },
   { href: '/batches',    label: 'Batches',    icon: GraduationCap,   roles: ['admin','teacher'],                    color: '#a855f7' },
   { href: '/attendance', label: 'Attendance', icon: CalendarCheck,   roles: ['admin','teacher'],                    color: '#10b981' },
