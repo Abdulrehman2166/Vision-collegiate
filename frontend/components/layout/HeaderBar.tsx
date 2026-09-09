@@ -7,7 +7,7 @@ import {
   Search, Bell, ChevronRight, Command, X,
   Users, CalendarCheck, BookOpen, BarChart3,
   LayoutDashboard, GraduationCap, MessageSquare,
-  LogOut, Settings, User, TrendingUp,
+  LogOut, Settings, User, TrendingUp, Wallet, Brain,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -25,6 +25,8 @@ const CRUMBS: Record<string, { label: string; icon: React.ReactNode; color: stri
   '/attendance': { label: 'Attendance', icon: <CalendarCheck   className="w-3.5 h-3.5" />, color: '#10b981' },
   '/tests':      { label: 'Tests',      icon: <BookOpen        className="w-3.5 h-3.5" />, color: '#f59e0b' },
   '/analytics':  { label: 'Analytics',  icon: <BarChart3       className="w-3.5 h-3.5" />, color: '#f43f5e' },
+  '/intelligence': { label: 'Intelligence', icon: <Brain        className="w-3.5 h-3.5" />, color: '#d946ef' },
+  '/finance':   { label: 'Finance',   icon: <Wallet          className="w-3.5 h-3.5" />, color: '#10b981' },
   '/users':      { label: 'Users',      icon: <Users           className="w-3.5 h-3.5" />, color: '#8b5cf6' },
   '/whatsapp':   { label: 'WhatsApp',   icon: <MessageSquare   className="w-3.5 h-3.5" />, color: '#22c55e' },
 };

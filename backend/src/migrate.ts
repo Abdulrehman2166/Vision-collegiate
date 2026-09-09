@@ -220,6 +220,39 @@ CREATE TABLE IF NOT EXISTS app_settings (
 );
 
 -- ─────────────────────────────────────────────
+-- FINANCE: student fee records & institute expenses
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS fee_records (
+  id           SERIAL PRIMARY KEY,
+  student_id   INTEGER      NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  amount       NUMERIC(12,2) NOT NULL CHECK (amount >= 0),
+  period       VARCHAR(10)  NOT NULL,            -- 'YYYY-MM'
+  due_date     DATE         NOT NULL,
+  status       VARCHAR(12)  NOT NULL DEFAULT 'unpaid' CHECK (status IN ('paid','partial','unpaid')),
+  paid_amount  NUMERIC(12,2) NOT NULL DEFAULT 0,
+  paid_date    DATE,
+  method       VARCHAR(50),
+  remarks      TEXT,
+  created_by   INTEGER      REFERENCES users(id) ON DELETE SET NULL,
+  created_at   TIMESTAMP    NOT NULL DEFAULT now(),
+  updated_at   TIMESTAMP    NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_fee_records_student ON fee_records(student_id);
+CREATE INDEX IF NOT EXISTS idx_fee_records_period  ON fee_records(period);
+
+CREATE TABLE IF NOT EXISTS expenses (
+  id            SERIAL PRIMARY KEY,
+  title         TEXT          NOT NULL,
+  category      VARCHAR(50)   NOT NULL,
+  amount        NUMERIC(12,2) NOT NULL CHECK (amount >= 0),
+  expense_date  DATE          NOT NULL DEFAULT CURRENT_DATE,
+  notes         TEXT,
+  created_by    INTEGER       REFERENCES users(id) ON DELETE SET NULL,
+  created_at    TIMESTAMP     NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(expense_date);
+
+-- ─────────────────────────────────────────────
 -- HELPER: auto-update updated_at
 -- ─────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION trigger_set_timestamp()
@@ -259,6 +292,12 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_timestamp_test_schedule') THEN
     CREATE TRIGGER set_timestamp_test_schedule
       BEFORE UPDATE ON test_schedule
+      FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_timestamp_fee_records') THEN
+    CREATE TRIGGER set_timestamp_fee_records
+      BEFORE UPDATE ON fee_records
       FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
   END IF;
 END;

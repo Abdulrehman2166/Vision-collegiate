@@ -9,7 +9,7 @@ import { clsx } from 'clsx';
 import {
   LayoutDashboard, Users, BookOpen, CalendarCheck, BarChart3,
   MessageSquare, LogOut, GraduationCap, X, ChevronLeft,
-  ShieldCheck, Settings, ClipboardList, TrendingUp,
+  ShieldCheck, Settings, ClipboardList, TrendingUp, Wallet, Brain,
 } from 'lucide-react';
 import { clearAuth, getUser } from '@/utils/auth';
 import api from '@/utils/api';
@@ -25,6 +25,8 @@ const NAV = [
   { href: '/tests',      label: 'Tests',      icon: BookOpen,        roles: ['admin','teacher','parent','student'], color: '#f59e0b' },
   { href: '/scoring',    label: 'Scoring',    icon: ClipboardList,    roles: ['admin','teacher'],                    color: '#10b981' },
   { href: '/analytics',  label: 'Analytics',  icon: BarChart3,       roles: ['admin','teacher'],                    color: '#f43f5e' },
+  { href: '/intelligence', label: 'Intelligence', icon: Brain,      roles: ['admin','teacher'],                    color: '#d946ef' },
+  { href: '/finance',    label: 'Finance',    icon: Wallet,          roles: ['admin'],                              color: '#10b981' },
   { href: '/users',      label: 'Users',      icon: ShieldCheck,     roles: ['admin'],                              color: '#8b5cf6' },
   { href: '/whatsapp',   label: 'WhatsApp',   icon: MessageSquare,   roles: ['admin'],                              color: '#22c55e' },
   { href: '/settings',   label: 'Settings',   icon: Settings,        roles: ['admin'],                              color: '#94a3b8' },
