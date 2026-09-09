@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { isAuthenticated } from '@/utils/auth';
+import { isAuthenticated, getUser } from '@/utils/auth';
+import type { User } from '@/utils/api';
 import { Sidebar } from './Sidebar';
 import { HeaderBar } from './HeaderBar';
 import { ClockCalendar } from './ClockCalendar';
@@ -12,6 +13,21 @@ import { Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface AppShellProps { children: React.ReactNode; }
+
+/** Role requirements per route prefix — mirrors Sidebar NAV (no entry = any authenticated role). */
+const ROLE_ROUTES: { prefix: string; roles: User['role'][] }[] = [
+  { prefix: '/progress',    roles: ['parent', 'student'] },
+  { prefix: '/students',    roles: ['admin', 'teacher'] },
+  { prefix: '/batches',     roles: ['admin', 'teacher'] },
+  { prefix: '/attendance',  roles: ['admin', 'teacher'] },
+  { prefix: '/scoring',     roles: ['admin', 'teacher'] },
+  { prefix: '/analytics',   roles: ['admin', 'teacher'] },
+  { prefix: '/intelligence',roles: ['admin', 'teacher'] },
+  { prefix: '/finance',     roles: ['admin'] },
+  { prefix: '/users',       roles: ['admin'] },
+  { prefix: '/whatsapp',    roles: ['admin'] },
+  { prefix: '/settings',    roles: ['admin'] },
+];
 
 /** Cinematic system-boot overlay played once on first mount. */
 function BootScreen({ done }: { done: boolean }) {
@@ -73,9 +89,15 @@ export function AppShell({ children }: AppShellProps) {
   const [glow, setGlow]               = useState({ x: -600, y: -600 });
 
   useEffect(() => {
-    if (!isAuthenticated()) router.replace('/login');
-    else setReady(true);
-  }, [router]);
+    if (!isAuthenticated()) { router.replace('/login'); return; }
+    setReady(true);
+    // Route-level role guard — silently send back users who don't belong here.
+    const user = getUser();
+    const guard = ROLE_ROUTES.find((r) => pathname.startsWith(r.prefix));
+    if (guard && user && !guard.roles.includes(user.role)) {
+      router.replace('/dashboard');
+    }
+  }, [router, pathname]);
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
