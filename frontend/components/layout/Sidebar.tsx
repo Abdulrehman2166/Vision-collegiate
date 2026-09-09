@@ -17,17 +17,17 @@ import toast from 'react-hot-toast';
 
 // ─── Nav items ─────────────────────────────────────────────────────────────────
 const NAV = [
-  { href: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard, roles: ['admin','teacher','parent','student'], color: '#6366f1' },
+  { href: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard, roles: ['admin','teacher','parent','student'], color: '#0ea5e9' },
   { href: '/progress',   label: 'My Progress', icon: TrendingUp,     roles: ['parent','student'],                    color: '#f59e0b' },
   { href: '/students',   label: 'Students',   icon: Users,           roles: ['admin','teacher'],                    color: '#06b6d4' },
-  { href: '/batches',    label: 'Batches',    icon: GraduationCap,   roles: ['admin','teacher'],                    color: '#a855f7' },
+  { href: '/batches',    label: 'Batches',    icon: GraduationCap,   roles: ['admin','teacher'],                    color: '#0284c7' },
   { href: '/attendance', label: 'Attendance', icon: CalendarCheck,   roles: ['admin','teacher'],                    color: '#10b981' },
   { href: '/tests',      label: 'Tests',      icon: BookOpen,        roles: ['admin','teacher','parent','student'], color: '#f59e0b' },
   { href: '/scoring',    label: 'Scoring',    icon: ClipboardList,    roles: ['admin','teacher'],                    color: '#10b981' },
   { href: '/analytics',  label: 'Analytics',  icon: BarChart3,       roles: ['admin','teacher'],                    color: '#f43f5e' },
-  { href: '/intelligence', label: 'Intelligence', icon: Brain,      roles: ['admin','teacher'],                    color: '#d946ef' },
+  { href: '/intelligence', label: 'Intelligence', icon: Brain,      roles: ['admin','teacher'],                    color: '#22d3ee' },
   { href: '/finance',    label: 'Finance',    icon: Wallet,          roles: ['admin'],                              color: '#10b981' },
-  { href: '/users',      label: 'Users',      icon: ShieldCheck,     roles: ['admin'],                              color: '#8b5cf6' },
+  { href: '/users',      label: 'Users',      icon: ShieldCheck,     roles: ['admin'],                              color: '#0284c7' },
   { href: '/whatsapp',   label: 'WhatsApp',   icon: MessageSquare,   roles: ['admin'],                              color: '#22c55e' },
   { href: '/settings',   label: 'Settings',   icon: Settings,        roles: ['admin'],                              color: '#94a3b8' },
 ];
@@ -211,7 +211,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             <div className="flex items-center gap-2.5">
               <div
                 className="icon-chip w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-black flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)' }}
+                style={{ background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)' }}
               >
                 {user.name?.charAt(0)?.toUpperCase() ?? 'U'}
               </div>

@@ -332,7 +332,7 @@ export default function AttendancePage() {
       {/* Reports & history */}
       <div className="card p-4 sm:p-5 mb-5">
         <div className="flex items-center gap-2 mb-4">
-          <FileSpreadsheet className="w-5 h-5 text-indigo-400" />
+          <FileSpreadsheet className="w-5 h-5 text-sky-400" />
           <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-wide">REPORTS &amp; HISTORY</h2>
           <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto hidden sm:inline">
             Generate slips for a week or an entire month. The daily slip button is below the grid.
@@ -342,8 +342,8 @@ export default function AttendancePage() {
           {/* Weekly / Range */}
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-3">
             <div className="flex items-center gap-2 text-slate-300">
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center">
-                <CalendarRange className="w-4 h-4 text-indigo-300" />
+              <div className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/25 flex items-center justify-center">
+                <CalendarRange className="w-4 h-4 text-sky-300" />
               </div>
               <div>
                 <p className="text-sm font-semibold">Weekly / Range</p>
@@ -372,8 +372,8 @@ export default function AttendancePage() {
           {/* Monthly */}
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-3">
             <div className="flex items-center gap-2 text-slate-300">
-              <div className="w-8 h-8 rounded-lg bg-violet-500/15 border border-violet-500/25 flex items-center justify-center">
-                <BarChart3 className="w-4 h-4 text-violet-300" />
+              <div className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/25 flex items-center justify-center">
+                <BarChart3 className="w-4 h-4 text-cyan-300" />
               </div>
               <div>
                 <p className="text-sm font-semibold">Monthly Analysis</p>

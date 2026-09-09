@@ -18,16 +18,16 @@ import toast from 'react-hot-toast';
 
 // ─── Breadcrumb config ─────────────────────────────────────────────────────────
 const CRUMBS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  '/dashboard':  { label: 'Dashboard',  icon: <LayoutDashboard className="w-3.5 h-3.5" />, color: '#6366f1' },
+  '/dashboard':  { label: 'Dashboard',  icon: <LayoutDashboard className="w-3.5 h-3.5" />, color: '#0ea5e9' },
   '/progress':   { label: 'My Progress', icon: <TrendingUp        className="w-3.5 h-3.5" />, color: '#f59e0b' },
   '/students':   { label: 'Students',   icon: <Users           className="w-3.5 h-3.5" />, color: '#06b6d4' },
-  '/batches':    { label: 'Batches',    icon: <GraduationCap   className="w-3.5 h-3.5" />, color: '#a855f7' },
+  '/batches':    { label: 'Batches',    icon: <GraduationCap   className="w-3.5 h-3.5" />, color: '#0284c7' },
   '/attendance': { label: 'Attendance', icon: <CalendarCheck   className="w-3.5 h-3.5" />, color: '#10b981' },
   '/tests':      { label: 'Tests',      icon: <BookOpen        className="w-3.5 h-3.5" />, color: '#f59e0b' },
   '/analytics':  { label: 'Analytics',  icon: <BarChart3       className="w-3.5 h-3.5" />, color: '#f43f5e' },
-  '/intelligence': { label: 'Intelligence', icon: <Brain        className="w-3.5 h-3.5" />, color: '#d946ef' },
+  '/intelligence': { label: 'Intelligence', icon: <Brain        className="w-3.5 h-3.5" />, color: '#22d3ee' },
   '/finance':   { label: 'Finance',   icon: <Wallet          className="w-3.5 h-3.5" />, color: '#10b981' },
-  '/users':      { label: 'Users',      icon: <Users           className="w-3.5 h-3.5" />, color: '#8b5cf6' },
+  '/users':      { label: 'Users',      icon: <Users           className="w-3.5 h-3.5" />, color: '#0284c7' },
   '/whatsapp':   { label: 'WhatsApp',   icon: <MessageSquare   className="w-3.5 h-3.5" />, color: '#22c55e' },
 };
 
@@ -35,7 +35,7 @@ const SEARCH_ITEMS = Object.entries(CRUMBS).map(([href, { label, icon, color }])
 
 // ─── Notifications data ────────────────────────────────────────────────────────
 const NOTIFS = [
-  { id: 1, text: 'Attendance marked for Batch A',      time: '2m ago',   dot: '#6366f1', unread: true  },
+  { id: 1, text: 'Attendance marked for Batch A',      time: '2m ago',   dot: '#38bdf8', unread: true  },
   { id: 2, text: '3 students below 75% attendance',    time: '15m ago',  dot: '#f59e0b', unread: true  },
   { id: 3, text: 'Test paper generated successfully',  time: '1h ago',   dot: '#10b981', unread: false },
   { id: 4, text: 'WhatsApp blast sent to 42 parents',  time: '3h ago',   dot: '#22c55e', unread: false },
@@ -132,13 +132,13 @@ export function HeaderBar() {
         {/* Top shimmer line */}
         <div
           className="absolute top-0 left-0 right-0 h-px pointer-events-none"
-          style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(99,102,241,0.3) 50%, transparent 100%)' }}
+          style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(56,189,248,0.32) 50%, transparent 100%)' }}
         />
         {/* Animated energy beam on the bottom edge */}
         <div
           className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
           style={{
-            background: 'linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.55) 20%, rgba(236,72,153,0.55) 50%, rgba(99,102,241,0.55) 80%, transparent 100%)',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(3,105,161,0.55) 20%, rgba(56,189,248,0.6) 50%, rgba(14,165,233,0.55) 80%, transparent 100%)',
             backgroundSize: '220% 100%',
             animation: 'beamFlow 5s linear infinite',
           }}
@@ -158,7 +158,7 @@ export function HeaderBar() {
               {i === crumbs.length - 1 ? (
                 <span className="flex items-center gap-1.5 font-semibold text-white min-w-0">
                   {c.icon && (
-                    <span className="flex-shrink-0" style={{ color: c.color ?? '#6366f1' }}>
+                    <span className="flex-shrink-0" style={{ color: c.color ?? '#0ea5e9' }}>
                       {c.icon}
                     </span>
                   )}
@@ -180,7 +180,7 @@ export function HeaderBar() {
         {/* Mobile: current page title */}
         <div className="sm:hidden flex-1 min-w-0 flex items-center gap-2">
           {currentPage?.icon && (
-            <span style={{ color: currentPage.color ?? '#6366f1' }}>{currentPage.icon}</span>
+            <span style={{ color: currentPage.color ?? '#0ea5e9' }}>{currentPage.icon}</span>
           )}
           <span className="text-sm font-bold text-white truncate">
             {currentPage?.label ?? 'Dashboard'}
@@ -231,8 +231,8 @@ export function HeaderBar() {
                   animate={{ scale: 1 }}
                   className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full ring-2 ring-[#06061a]"
                   style={{
-                    background: '#6366f1',
-                    boxShadow: '0 0 6px rgba(99,102,241,0.8)',
+                    background: '#38bdf8',
+                    boxShadow: '0 0 6px rgba(56,189,248,0.8)',
                   }}
                 />
               )}
@@ -249,7 +249,7 @@ export function HeaderBar() {
                     <button
                       onClick={() => setUnread(0)}
                       className="text-xs font-semibold transition-colors"
-                      style={{ color: '#6366f1' }}
+                      style={{ color: '#38bdf8' }}
                     >
                       Mark all read
                     </button>
@@ -262,11 +262,11 @@ export function HeaderBar() {
                       transition={{ delay: i * 0.04 }}
                       className="flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer"
                       style={{
-                        background: n.unread ? 'rgba(99,102,241,0.04)' : 'transparent',
+                        background: n.unread ? 'rgba(14,165,233,0.05)' : 'transparent',
                         borderBottom: '1px solid rgba(255,255,255,0.04)',
                       }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = n.unread ? 'rgba(99,102,241,0.04)' : 'transparent'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = n.unread ? 'rgba(14,165,233,0.05)' : 'transparent'; }}
                     >
                       <span
                         className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0"
@@ -277,7 +277,7 @@ export function HeaderBar() {
                         <p className="text-[11px] text-slate-600 mt-0.5">{n.time}</p>
                       </div>
                       {n.unread && (
-                        <div className="flex-shrink-0 w-1.5 h-1.5 rounded-full mt-2" style={{ background: '#6366f1' }} />
+                        <div className="flex-shrink-0 w-1.5 h-1.5 rounded-full mt-2" style={{ background: '#38bdf8' }} />
                       )}
                     </motion.div>
                   ))}
@@ -297,11 +297,11 @@ export function HeaderBar() {
               onClick={() => { setProfileOpen((o) => !o); setNotifsOpen(false); }}
               className="relative w-8 h-8 rounded-xl flex items-center justify-center text-white text-sm font-black"
               style={{
-                background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
                 boxShadow: profileOpen
-                  ? '0 0 0 2px rgba(99,102,241,0.6), 0 0 16px rgba(99,102,241,0.4)'
-                  : '0 0 12px -2px rgba(99,102,241,0.4)',
-                outline: profileOpen ? '2px solid rgba(99,102,241,0.6)' : 'none',
+                  ? '0 0 0 2px rgba(56,189,248,0.6), 0 0 16px rgba(56,189,248,0.4)'
+                  : '0 0 12px -2px rgba(56,189,248,0.45)',
+                outline: profileOpen ? '2px solid rgba(56,189,248,0.6)' : 'none',
                 outlineOffset: '2px',
               }}
               title={user?.name}
@@ -327,7 +327,7 @@ export function HeaderBar() {
                     <p className="text-xs text-slate-500 mt-0.5 truncate">{user?.email}</p>
                     <span
                       className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold capitalize"
-                      style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}
+                      style={{ background: 'rgba(14,165,233,0.15)', color: '#7dd3fc' }}
                     >
                       {user?.role === 'admin' ? '⚡' : '🎓'} {user?.role}
                     </span>
@@ -396,7 +396,7 @@ export function HeaderBar() {
               {/* Top shimmer */}
               <div
                 className="h-px"
-                style={{ background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.8), transparent)' }}
+                style={{ background: 'linear-gradient(90deg, transparent, rgba(56,189,248,0.8), transparent)' }}
               />
 
               {/* Search input */}

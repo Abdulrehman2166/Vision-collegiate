@@ -38,11 +38,11 @@ interface StatCardProps {
 }
 
 const colorMap: Record<StatColor, { color: string; bg: string; border: string; stroke: string; glow: string }> = {
-  indigo:  { color:'#6366f1', bg:'rgba(99,102,241,0.12)',  border:'rgba(99,102,241,0.2)',  stroke:'#6366f1', glow:'rgba(99,102,241,0.15)'  },
+  indigo:  { color:'#0ea5e9', bg:'rgba(14,165,233,0.12)',  border:'rgba(14,165,233,0.22)',  stroke:'#0ea5e9', glow:'rgba(14,165,233,0.16)'  },
   emerald: { color:'#10b981', bg:'rgba(16,185,129,0.12)',  border:'rgba(16,185,129,0.2)',  stroke:'#10b981', glow:'rgba(16,185,129,0.15)'  },
   red:     { color:'#ef4444', bg:'rgba(239,68,68,0.12)',   border:'rgba(239,68,68,0.2)',   stroke:'#ef4444', glow:'rgba(239,68,68,0.15)'   },
   amber:   { color:'#f59e0b', bg:'rgba(245,158,11,0.12)',  border:'rgba(245,158,11,0.2)',  stroke:'#f59e0b', glow:'rgba(245,158,11,0.15)'  },
-  purple:  { color:'#a855f7', bg:'rgba(168,85,247,0.12)',  border:'rgba(168,85,247,0.2)',  stroke:'#a855f7', glow:'rgba(168,85,247,0.15)'  },
+  purple:  { color:'#38bdf8', bg:'rgba(56,189,248,0.12)',  border:'rgba(56,189,248,0.22)',  stroke:'#38bdf8', glow:'rgba(56,189,248,0.16)'  },
   sky:     { color:'#0ea5e9', bg:'rgba(14,165,233,0.12)',  border:'rgba(14,165,233,0.2)',  stroke:'#0ea5e9', glow:'rgba(14,165,233,0.15)'  },
 };
 

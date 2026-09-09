@@ -77,7 +77,7 @@ interface FeeRecord {
 
 const CATEGORIES = ['Rent', 'Salaries', 'Electricity', 'Stationery', 'Marketing', 'Maintenance', 'Transport', 'Utilities', 'Other'];
 
-const DONUT_COLORS = ['#f59e0b', '#a855f7', '#6366f1', '#06b6d4', '#10b981', '#f43f5e', '#ec4899', '#22c55e', '#94a3b8', '#eab308'];
+const DONUT_COLORS = ['#f59e0b', '#38bdf8', '#0ea5e9', '#06b6d4', '#10b981', '#f43f5e', '#22d3ee', '#22c55e', '#94a3b8', '#eab308'];
 
 function money(n: number): string {
   const v = Math.round(n).toLocaleString('en-US');
@@ -231,7 +231,7 @@ export default function FinancePage() {
                   { label: 'Outstanding', value: money(totalOutstanding || summary.outstanding), color: '#f43f5e', icon: <AlertCircle className="w-4 h-4" /> },
                   { label: 'Expenses', value: money(summary.expenses), color: '#f59e0b', icon: <Receipt className="w-4 h-4" /> },
                   { label: 'Net Profit', value: money(summary.profit), color: summary.profit >= 0 ? '#34d399' : '#f87171', icon: summary.profit >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" /> },
-                  { label: 'Margin', value: `${summary.margin}%`, color: '#a855f7', icon: <Percent className="w-4 h-4" /> },
+                  { label: 'Margin', value: `${summary.margin}%`, color: '#38bdf8', icon: <Percent className="w-4 h-4" /> },
                 ].map((k) => (
                   <div key={k.label} className="card p-4">
                     <div className="flex items-center justify-between mb-3">

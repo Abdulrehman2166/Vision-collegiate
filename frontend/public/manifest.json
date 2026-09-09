@@ -5,7 +5,7 @@
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#04040f",
-  "theme_color": "#4f46e5",
+  "theme_color": "#0ea5e9",
   "orientation": "portrait-primary",
   "categories": ["education", "productivity"],
   "icons": [

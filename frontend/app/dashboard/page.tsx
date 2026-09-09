@@ -26,17 +26,17 @@ import { getWorkingDate, getRealToday } from '@/utils/dates';
 import { karachiParts, type KarachiParts } from '@/utils/karachiTime';
 
 const QUICK_ACTIONS = [
-  { label: 'Mark Attendance', icon: CalendarCheck, href: '/attendance', from: '#6366f1', to: '#4f46e5', glow: 'rgba(99,102,241,0.45)' },
-  { label: 'Create Test',     icon: BookOpen,      href: '/tests',      from: '#a855f7', to: '#7c3aed', glow: 'rgba(168,85,247,0.45)' },
+  { label: 'Mark Attendance', icon: CalendarCheck, href: '/attendance', from: '#0ea5e9', to: '#0369a1', glow: 'rgba(14,165,233,0.45)' },
+  { label: 'Create Test',     icon: BookOpen,      href: '/tests',      from: '#38bdf8', to: '#0284c7', glow: 'rgba(56,189,248,0.45)' },
   { label: 'WhatsApp Blast',  icon: MessageSquare, href: '/whatsapp',   from: '#10b981', to: '#059669', glow: 'rgba(16,185,129,0.45)' },
   { label: 'Analytics',       icon: TrendingUp,    href: '/analytics',  from: '#f59e0b', to: '#d97706', glow: 'rgba(245,158,11,0.45)' },
 ];
 
 const STAT_CONFIGS = [
-  { key: 'totalStudents', title: 'Marked Today', icon: Users,        color: '#6366f1', bg: 'rgba(99,102,241,0.12)',  border: 'rgba(99,102,241,0.2)'  },
+  { key: 'totalStudents', title: 'Marked Today', icon: Users,        color: '#0ea5e9', bg: 'rgba(14,165,233,0.12)',  border: 'rgba(14,165,233,0.2)'  },
   { key: 'presentToday',  title: 'Present',      icon: CheckCircle2, color: '#10b981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.2)' },
   { key: 'absentToday',   title: 'Absent',       icon: XCircle,      color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.2)'  },
-  { key: 'pct',           title: 'Attendance',   icon: Activity,     color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.2)' },
+  { key: 'pct',           title: 'Attendance',   icon: Activity,     color: '#38bdf8', bg: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.2)' },
 ];
 
 function greeting(hour: number) {
@@ -140,13 +140,13 @@ export default function DashboardPage() {
         <div style={{
           position:'absolute', top:'-10%', left:'-5%',
           width:'500px', height:'500px', borderRadius:'50%',
-          background:'radial-gradient(circle, rgba(99,102,241,0.06), transparent 70%)',
+          background:'radial-gradient(circle, rgba(14,165,233,0.06), transparent 70%)',
           filter:'blur(60px)',
         }} />
         <div style={{
           position:'absolute', bottom:'10%', right:'-5%',
           width:'400px', height:'400px', borderRadius:'50%',
-          background:'radial-gradient(circle, rgba(168,85,247,0.05), transparent 70%)',
+          background:'radial-gradient(circle, rgba(56,189,248,0.05), transparent 70%)',
           filter:'blur(60px)',
         }} />
       </div>
@@ -249,10 +249,10 @@ export default function DashboardPage() {
               <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
                 <div style={{
                   width:'36px', height:'36px', borderRadius:'10px',
-                  background:'rgba(99,102,241,0.12)', border:'1px solid rgba(99,102,241,0.2)',
+                  background:'rgba(14,165,233,0.12)', border:'1px solid rgba(14,165,233,0.2)',
                   display:'flex', alignItems:'center', justifyContent:'center',
                 }}>
-                  <TrendingUp size={16} style={{ color:'#6366f1' }} />
+                  <TrendingUp size={16} style={{ color:'#0ea5e9' }} />
                 </div>
                 <div>
                   <p style={{ fontSize:'13px', fontWeight:700, color:'#f1f5f9', margin:0 }}>Attendance Trend</p>
@@ -260,7 +260,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div style={{ display:'flex', gap:'16px' }}>
-                {[{c:'#6366f1',l:'Present'},{c:'#ef4444',l:'Absent'}].map(x=>(
+                {[{c:'#0ea5e9',l:'Present'},{c:'#ef4444',l:'Absent'}].map(x=>(
                   <div key={x.l} style={{ display:'flex', alignItems:'center', gap:'6px' }}>
                     <div style={{ width:'8px',height:'8px',borderRadius:'50%',background:x.c,boxShadow:`0 0 6px ${x.c}` }} />
                     <span style={{ fontSize:'11px', fontWeight:600, color:'#64748b' }}>{x.l}</span>
@@ -278,8 +278,8 @@ export default function DashboardPage() {
                 <AreaChart data={trend} margin={{ top:5, right:4, left:-28, bottom:0 }}>
                   <defs>
                     <linearGradient id="gP" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%"   stopColor="#6366f1" stopOpacity={0.4} />
-                      <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+<stop offset="0%"   stopColor="#0ea5e9" stopOpacity={0.4} />
+<stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="gA" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%"   stopColor="#ef4444" stopOpacity={0.3} />
@@ -302,7 +302,7 @@ export default function DashboardPage() {
                   <Tooltip
                     contentStyle={{
                       background: 'rgba(8,8,28,0.97)',
-                      border: '1px solid rgba(99,102,241,0.2)',
+                      border: '1px solid rgba(14,165,233,0.2)',
                       borderRadius: '12px',
                       boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
                       backdropFilter: 'blur(16px)',
@@ -314,9 +314,9 @@ export default function DashboardPage() {
                       if (!s) return '';
                       try { return format(new Date(s), 'MMM d, yyyy'); } catch { return ''; }
                     }}
-                    cursor={{ stroke: 'rgba(99,102,241,0.2)', strokeWidth: 1 }}
+                    cursor={{ stroke: 'rgba(14,165,233,0.2)', strokeWidth: 1 }}
                   />
-                  <Area dataKey="present" name="Present" stroke="#6366f1" fill="url(#gP)" strokeWidth={2} dot={false} />
+                  <Area dataKey="present" name="Present" stroke="#0ea5e9" fill="url(#gP)" strokeWidth={2} dot={false} />
                   <Area dataKey="absent"  name="Absent"  stroke="#ef4444" fill="url(#gA)" strokeWidth={2} dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -332,7 +332,7 @@ export default function DashboardPage() {
             {/* Quick Actions */}
             <div className="card" style={{ padding:'20px' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'16px' }}>
-                <Zap size={14} style={{ color:'#6366f1' }} />
+                <Zap size={14} style={{ color:'#0ea5e9' }} />
                 <p style={{ fontSize:'12px', fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.08em', margin:0 }}>Quick Actions</p>
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
@@ -348,7 +348,7 @@ export default function DashboardPage() {
                           border:'1px solid rgba(255,255,255,0.06)',
                           transition:'all 0.15s ease',
                         }}
-                        onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.06)';(e.currentTarget as HTMLElement).style.borderColor='rgba(99,102,241,0.2)';}}
+                        onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.06)';(e.currentTarget as HTMLElement).style.borderColor='rgba(14,165,233,0.2)';}}
                         onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.03)';(e.currentTarget as HTMLElement).style.borderColor='rgba(255,255,255,0.06)';}}
                       >
                         <div style={{
@@ -415,8 +415,8 @@ export default function DashboardPage() {
                 <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'12px' }}>
                   <div style={{
                     width:'40px', height:'40px', borderRadius:'12px',
-                    background:'linear-gradient(135deg, #6366f1, #a855f7)',
-                    boxShadow:'0 0 16px -4px rgba(99,102,241,0.6)',
+                    background:'linear-gradient(135deg, #0ea5e9, #38bdf8)',
+                    boxShadow:'0 0 16px -4px rgba(14,165,233,0.6)',
                     display:'flex', alignItems:'center', justifyContent:'center',
                     color:'white', fontWeight:900, fontSize:'16px', flexShrink:0,
                   }}>

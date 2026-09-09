@@ -282,7 +282,7 @@ export default function TestsPage() {
             {canCreate && (
               <button
                 onClick={() => setOutOfEdit({ id: t.id, value: String(t.total_marks) })}
-                className="p-1 rounded-md text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+                className="p-1 rounded-md text-slate-400 hover:text-sky-400 hover:bg-sky-500/10 transition-colors"
                 title="Edit out-of marks"
               >
                 <Pencil className="w-3.5 h-3.5" />
@@ -408,7 +408,7 @@ export default function TestsPage() {
       {/* Reports */}
       <div className="card p-4 sm:p-5 mb-5">
         <div className="flex items-center gap-2 mb-4">
-          <FileSpreadsheet className="w-5 h-5 text-indigo-400" />
+          <FileSpreadsheet className="w-5 h-5 text-sky-400" />
           <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-wide">MONTHLY TEST ANALYTICS</h2>
           <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto hidden sm:inline">
             Enter marks per test, then generate the end-of-month student report.
@@ -417,8 +417,8 @@ export default function TestsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-3">
             <div className="flex items-center gap-2 text-slate-300">
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center">
-                <BarChart3 className="w-4 h-4 text-indigo-300" />
+              <div className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/25 flex items-center justify-center">
+                <BarChart3 className="w-4 h-4 text-sky-300" />
               </div>
               <div>
                 <p className="text-sm font-semibold">Batch / Class Report</p>
@@ -445,8 +445,8 @@ export default function TestsPage() {
 
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-3">
             <div className="flex items-center gap-2 text-slate-300">
-              <div className="w-8 h-8 rounded-lg bg-violet-500/15 border border-violet-500/25 flex items-center justify-center">
-                <ClipboardList className="w-4 h-4 text-violet-300" />
+              <div className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/25 flex items-center justify-center">
+                <ClipboardList className="w-4 h-4 text-cyan-300" />
               </div>
               <div>
                 <p className="text-sm font-semibold">Student Report</p>

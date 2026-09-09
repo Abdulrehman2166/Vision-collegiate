@@ -12,7 +12,7 @@ export function Spinner({ size = 'md', className, light }: SpinnerProps) {
       style={{
         background: light
           ? 'conic-gradient(from 0deg, transparent 0%, #ffffff 80%, transparent 100%)'
-          : 'conic-gradient(from 0deg, transparent 0%, #6366f1 80%, transparent 100%)',
+          : 'conic-gradient(from 0deg, transparent 0%, #38bdf8 80%, transparent 100%)',
         WebkitMask: 'radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2.5px))',
         mask:       'radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2.5px))',
       }}
@@ -33,7 +33,7 @@ export function PageLoader() {
             className="w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center animate-float"
             style={{
               background: 'rgba(255,255,255,0.0)',
-              boxShadow: '0 0 30px -6px rgba(99,102,241,0.55)',
+              boxShadow: '0 0 30px -6px rgba(14,165,233,0.6)',
             }}
           >
             <Image
@@ -48,7 +48,7 @@ export function PageLoader() {
           {/* Glow ring */}
           <div
             className="absolute inset-0 rounded-2xl -z-10 scale-110 blur-md"
-            style={{ background: 'linear-gradient(135deg, #6366f130, #a855f730)' }}
+            style={{ background: 'linear-gradient(135deg, #0ea5e930, #38bdf830)' }}
           />
         </div>
 

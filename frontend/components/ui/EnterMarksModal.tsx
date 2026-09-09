@@ -219,8 +219,8 @@ export function EnterMarksModal({ open, test, onClose, onSaved }: Props) {
                 className="h-full rounded-full transition-all"
                 style={{
                   width: `${pct}%`,
-                  background: 'linear-gradient(90deg,#10b981,#6366f1)',
-                  boxShadow: '0 0 10px rgba(99,102,241,0.5)',
+                  background: 'linear-gradient(90deg,#10b981,#0ea5e9)',
+                  boxShadow: '0 0 10px rgba(14,165,233,0.5)',
                 }}
               />
             </div>
@@ -228,10 +228,10 @@ export function EnterMarksModal({ open, test, onClose, onSaved }: Props) {
 
           {/* test out-of total — teacher controls the marks value of this test */}
           <div className="rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3"
-               style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.07))', border: '1px solid rgba(139,92,246,0.35)' }}>
+               style={{ background: 'linear-gradient(135deg, rgba(14,165,233,0.12), rgba(56,189,248,0.07))', border: '1px solid rgba(56,189,248,0.35)' }}>
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="icon-chip w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(168,85,247,0.18))' }}>
-                <Target className="w-4 h-4 text-indigo-300" style={{ filter: 'drop-shadow(0 0 6px rgba(129,140,248,0.8))' }} />
+              <div className="icon-chip w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, rgba(14,165,233,0.25), rgba(56,189,248,0.18))' }}>
+                <Target className="w-4 h-4 text-sky-300" style={{ filter: 'drop-shadow(0 0 6px rgba(56,189,248,0.8))' }} />
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-white tracking-wide" style={{ letterSpacing: '0.06em' }}>TEST OUT OF</p>
@@ -256,7 +256,7 @@ export function EnterMarksModal({ open, test, onClose, onSaved }: Props) {
           </div>
 
           {/* bulk apply toolbar */}
-          <div className="rounded-xl border border-indigo-400/20 bg-indigo-500/[0.05] p-3 flex flex-col sm:flex-row sm:items-end gap-2">
+          <div className="rounded-xl border border-sky-400/20 bg-sky-500/[0.06] p-3 flex flex-col sm:flex-row sm:items-end gap-2">
             <div className="flex-1">
               <label className="label">Subject for all unmarked</label>
               <input
@@ -304,7 +304,7 @@ export function EnterMarksModal({ open, test, onClose, onSaved }: Props) {
               const marked = s.marks != null;
               const active = s.studentId === activeId;
               return (
-                <div key={s.studentId} className={clsx('px-3 py-2.5 grid gap-2', active ? 'bg-indigo-500/[0.05]' : '')}>
+                <div key={s.studentId} className={clsx('px-3 py-2.5 grid gap-2', active ? 'bg-sky-500/[0.06]' : '')}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       {marked

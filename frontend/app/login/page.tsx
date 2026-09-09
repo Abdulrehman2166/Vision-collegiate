@@ -95,7 +95,7 @@ function ParticleCanvas() {
               if (d2 < LINK_DIST * LINK_DIST) {
                 const alpha = 0.1 * (1 - Math.sqrt(d2) / LINK_DIST);
                 ctx.beginPath();
-                ctx.strokeStyle = `rgba(99,102,241,${alpha})`;
+                ctx.strokeStyle = `rgba(14,165,233,${alpha})`;
                 ctx.lineWidth = 0.5;
                 ctx.moveTo(p.x, p.y);
                 ctx.lineTo(q.x, q.y);
@@ -107,7 +107,7 @@ function ParticleCanvas() {
         // Draw dot
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(139,92,246,${p.a})`;
+        ctx.fillStyle = `rgba(56,189,248,${p.a})`;
         ctx.fill();
 
         // Move
@@ -187,8 +187,8 @@ function LoginContent() {
       <div className="text-center mb-8">
         <div className="inline-flex items-center justify-center mb-6 relative">
           {/* Slow CSS rotating ring — no JS animation */}
-          <div className="absolute rounded-full border border-indigo-500/20 login-ring-outer" style={{ width: 112, height: 112 }} />
-          <div className="absolute rounded-full border border-purple-500/15 login-ring-inner" style={{ width: 90, height: 90 }} />
+<div className="absolute rounded-full border border-sky-500/20 login-ring-outer" style={{ width: 112, height: 112 }} />
+                <div className="absolute rounded-full border border-cyan-400/15 login-ring-inner" style={{ width: 90, height: 90 }} />
 
           {/* Logo box */}
           <div
@@ -211,14 +211,14 @@ function LoginContent() {
           </div>
 
           {/* Pulse rings — CSS animation */}
-          <div className="absolute rounded-full border border-indigo-500/25 pulse-ring" style={{ width: 76, height: 76 }} />
-          <div className="absolute rounded-full border border-indigo-500/15 pulse-ring pulse-ring-2" style={{ width: 76, height: 76 }} />
+<div className="absolute rounded-full border border-sky-500/25 pulse-ring" style={{ width: 76, height: 76 }} />
+              <div className="absolute rounded-full border border-sky-500/15 pulse-ring pulse-ring-2" style={{ width: 76, height: 76 }} />
         </div>
 
         <h1 className="text-[28px] font-black text-white tracking-tight leading-tight">
           Vision{' '}
           <span className="bg-clip-text text-transparent"
-                style={{ backgroundImage: 'linear-gradient(135deg, #818cf8, #c084fc)' }}>
+                style={{ backgroundImage: 'linear-gradient(135deg, #7dd3fc, #38bdf8)' }}>
             Collegiate
           </span>
         </h1>
@@ -240,13 +240,13 @@ function LoginContent() {
         {/* Top shimmer */}
         <div
           className="absolute top-0 left-0 right-0 h-px"
-          style={{ background: 'linear-gradient(90deg, transparent, rgba(139,92,246,0.7), rgba(99,102,241,0.9), rgba(139,92,246,0.7), transparent)' }}
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(56,189,248,0.7), rgba(14,165,233,0.9), rgba(56,189,248,0.7), transparent)' }}
         />
 
         <div className="p-8">
           <div className="mb-7">
             <div className="flex items-center gap-2 mb-1">
-              <Shield className="w-3.5 h-3.5 text-indigo-400" />
+              <Shield className="w-3.5 h-3.5 text-sky-400" />
               <h2 className="text-lg font-bold text-white">Secure Sign In</h2>
             </div>
             <p className="text-slate-500 text-sm">Enter your institute credentials to continue</p>
@@ -265,7 +265,7 @@ function LoginContent() {
                 className="w-full rounded-xl px-4 py-3 text-sm font-medium text-white
                            placeholder:text-slate-600 outline-none
                            transition-[border-color,box-shadow] duration-150
-                           focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500/50"
+                           focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500/50"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
                 {...register('email')}
               />
@@ -293,7 +293,7 @@ function LoginContent() {
                   className="w-full rounded-xl px-4 py-3 pr-12 text-sm font-medium text-white
                              placeholder:text-slate-600 outline-none
                              transition-[border-color,box-shadow] duration-150
-                             focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500/50"
+                             focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500/50"
                   style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
                   {...register('password')}
                 />
@@ -327,8 +327,8 @@ function LoginContent() {
                          disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none
                          flex items-center justify-center gap-2.5"
               style={{
-                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                boxShadow: isSubmitting ? 'none' : '0 0 28px -4px rgba(99,102,241,0.55)',
+                background: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)',
+                boxShadow: isSubmitting ? 'none' : '0 0 28px -4px rgba(14,165,233,0.55)',
               }}
             >
               {isSubmitting ? (
@@ -369,7 +369,7 @@ export default function LoginPage() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: 'radial-gradient(rgba(99,102,241,0.15) 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(rgba(14,165,233,0.15) 1px, transparent 1px)',
           backgroundSize: '32px 32px',
           opacity: 0.5,
         }}

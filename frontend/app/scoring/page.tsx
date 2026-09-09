@@ -381,8 +381,8 @@ function DayColumn({ slot, month, week, batchId, canCreate, loading, findExistin
     <div className="card p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center">
-            <CalendarRange className="w-4 h-4 text-indigo-300" />
+          <div className="w-9 h-9 rounded-xl bg-sky-500/15 border border-sky-500/25 flex items-center justify-center">
+            <CalendarRange className="w-4 h-4 text-sky-300" />
           </div>
           <div>
             <p className="text-sm font-bold text-white">{slot.day}</p>
@@ -431,7 +431,7 @@ function DayColumn({ slot, month, week, batchId, canCreate, loading, findExistin
                   {canCreate && (
                     <button
                       onClick={() => { setTotalValue(String(existing.total_marks)); setEditingTotal(true); }}
-                      className="p-0.5 rounded text-slate-500 hover:text-indigo-300"
+                      className="p-0.5 rounded text-slate-500 hover:text-sky-300"
                       title="Edit out-of marks"
                     >
                       <Pencil className="w-3 h-3" />

@@ -88,14 +88,14 @@ export function ClockCalendar() {
         }}
       >
         <span className="flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5" style={{ color: '#818cf8' }} />
+          <Clock className="w-3.5 h-3.5" style={{ color: '#7dd3fc' }} />
           <span className="font-mono text-sm font-bold text-white tabular-nums">
             {formatKarachiClock(parts)}
           </span>
         </span>
         <span className="h-4 w-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
         <span className="flex items-center gap-1.5">
-          <CalendarDays className="w-3.5 h-3.5" style={{ color: '#a855f7' }} />
+          <CalendarDays className="w-3.5 h-3.5" style={{ color: '#38bdf8' }} />
           <span className="text-xs font-semibold text-slate-200 whitespace-nowrap">
             {isWorkingReal ? 'Today · ' : 'Working · '}
             {karachiDateLabel(parts)}
@@ -121,7 +121,7 @@ export function ClockCalendar() {
             }}
           >
             {/* top shimmer */}
-            <div className="h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.8), transparent)' }} />
+            <div className="h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(56,189,248,0.8), transparent)' }} />
 
             {/* header: month nav */}
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -162,9 +162,9 @@ export function ClockCalendar() {
                         )}
                         style={
                           todayCell
-                            ? { background: 'linear-gradient(135deg,#6366f1,#a855f7)', boxShadow: '0 0 12px -2px rgba(99,102,241,0.7)' }
+                            ? { background: 'linear-gradient(135deg,#0ea5e9,#38bdf8)', boxShadow: '0 0 12px -2px rgba(56,189,248,0.7)' }
                             : workCell
-                              ? { background: 'rgba(168,85,247,0.18)', border: '1px solid rgba(168,85,247,0.4)' }
+                              ? { background: 'rgba(14,165,233,0.18)', border: '1px solid rgba(14,165,233,0.4)' }
                               : undefined
                         }
                       >
@@ -180,11 +180,11 @@ export function ClockCalendar() {
             <div className="px-4 py-3 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
               <div className="flex items-center gap-4 text-[11px] text-slate-500">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded" style={{ background: 'linear-gradient(135deg,#6366f1,#a855f7)' }} />
+                  <span className="w-3 h-3 rounded" style={{ background: 'linear-gradient(135deg,#0ea5e9,#38bdf8)' }} />
                   Today
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded" style={{ background: 'rgba(168,85,247,0.25)', border: '1px solid rgba(168,85,247,0.5)' }} />
+                  <span className="w-3 h-3 rounded" style={{ background: 'rgba(14,165,233,0.25)', border: '1px solid rgba(14,165,233,0.5)' }} />
                   Working date
                 </span>
               </div>

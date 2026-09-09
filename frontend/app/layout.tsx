@@ -14,8 +14,8 @@ const inter = Inter({
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: dark)',  color: '#4f46e5' },
-    { media: '(prefers-color-scheme: light)', color: '#4f46e5' },
+    { media: '(prefers-color-scheme: dark)',  color: '#0ea5e9' },
+    { media: '(prefers-color-scheme: light)', color: '#0ea5e9' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -69,7 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             style: {
               background: 'rgba(10,10,28,0.97)',
               color: '#f1f5f9',
-              border: '1px solid rgba(99,102,241,0.2)',
+              border: '1px solid rgba(14,165,233,0.2)',
               borderRadius: '14px',
               backdropFilter: 'blur(24px)',
               fontSize: '13px',

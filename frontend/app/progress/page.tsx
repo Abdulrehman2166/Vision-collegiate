@@ -44,8 +44,8 @@ const ATT_COLOR: Record<string, string> = {
 function scoreColor(pct: number | null): string {
   if (pct == null) return '#475569';
   if (pct >= 80) return '#f59e0b';
-  if (pct >= 65) return '#a855f7';
-  if (pct >= 45) return '#6366f1';
+  if (pct >= 65) return '#f97316';
+  if (pct >= 45) return '#0284c7';
   return '#38bdf8';
 }
 
@@ -122,7 +122,7 @@ export default function ProgressPage() {
                   ].join(' ')}
                   style={
                     activeId === s.id
-                      ? { background: 'linear-gradient(135deg, #6366f126, #a855f710)', border: '1px solid #6366f166' }
+                      ? { background: 'linear-gradient(135deg, #0ea5e926, #38bdf810)', border: '1px solid #0ea5e966' }
                       : { border: '1px solid rgba(255,255,255,0.08)' }
                   }
                 >
@@ -153,8 +153,8 @@ export default function ProgressPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <div className="icon-chip w-8 h-8 rounded-lg flex items-center justify-center"
-                      style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)' }}>
-                      <BookOpen className="w-4 h-4 text-indigo-300" />
+                      style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.3)' }}>
+                      <BookOpen className="w-4 h-4 text-sky-300" />
                     </div>
                     <div>
                       <h2 className="text-sm font-bold text-white">Recent Performance</h2>
@@ -257,7 +257,7 @@ export default function ProgressPage() {
 
             <div className="card p-4 flex items-center gap-3">
               <div className="icon-chip w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, #06b6d426, #a855f71a)', border: '1px solid #06b6d655' }}>
+                style={{ background: 'linear-gradient(135deg, #06b6d426, #38bdf81a)', border: '1px solid #06b6d655' }}>
                 <Target className="w-4 h-4 text-cyan-300" />
               </div>
               <p className="text-xs text-slate-400">

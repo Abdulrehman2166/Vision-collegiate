@@ -47,7 +47,7 @@ interface AtRiskShape {
 const RISK_COLORS: Record<string, string> = { critical: '#f43f5e', high: '#f59e0b', watch: '#eab308' };
 const RISK_LEVELS: Record<string, string> = { critical: 'badge-red', high: 'badge-yellow', watch: 'badge-yellow' };
 
-const HIST_COLORS = ['#f43f5e', '#f97316', '#f59e0b', '#facc15', '#a3e635', '#4ade80', '#22d3ee', '#38bdf8', '#818cf8', '#c084fc', '#e879f9'];
+const HIST_COLORS = ['#f43f5e', '#f97316', '#f59e0b', '#facc15', '#a3e635', '#4ade80', '#22d3ee', '#38bdf8', '#0ea5e9', '#0284c7', '#0369a1'];
 
 export default function IntelligencePage() {
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -116,7 +116,7 @@ export default function IntelligencePage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-              <Brain className="w-6 h-6 text-fuchsia-400" /> Intelligence Lab
+              <Brain className="w-6 h-6 text-cyan-400" /> Intelligence Lab
             </h1>
             <p className="text-sm text-slate-400">Forecasting, distributions, correlation & risk — computed live</p>
           </div>
@@ -142,7 +142,7 @@ export default function IntelligencePage() {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <div className="icon-chip w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(217,70,239,0.1)', border: '1px solid rgba(217,70,239,0.3)' }}>
-                      <Activity className="w-4 h-4 text-fuchsia-300" />
+                      <Activity className="w-4 h-4 text-cyan-300" />
                     </div>
                     <div>
                       <h2 className="text-sm font-bold text-white">Attendance Forecast</h2>
@@ -163,8 +163,8 @@ export default function IntelligencePage() {
                           <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="gP" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#d946ef" stopOpacity={0.35} />
-                          <stop offset="100%" stopColor="#d946ef" stopOpacity={0} />
+<stop offset="0%" stopColor="#22d3ee" stopOpacity={0.35} />
+<stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -174,7 +174,7 @@ export default function IntelligencePage() {
                       <Legend wrapperStyle={{ fontSize: 10, color: '#94a3b8' }} />
                       <ReferenceLine y={85} stroke="rgba(148,163,184,0.25)" strokeDasharray="4 4" />
                       <Area type="monotone" dataKey="actual" name="actual" stroke="#38bdf8" strokeWidth={2} fill="url(#gA)" connectNulls />
-                      <Area type="monotone" dataKey="projected" name="projected" stroke="#d946ef" strokeWidth={2} strokeDasharray="6 3" fill="url(#gP)" connectNulls />
+                      <Area type="monotone" dataKey="projected" name="projected" stroke="#22d3ee" strokeWidth={2} strokeDasharray="6 3" fill="url(#gP)" connectNulls />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -185,7 +185,7 @@ export default function IntelligencePage() {
                   <h3 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-3">Regression Fit</h3>
                   <div className="space-y-2.5">
                     <RegLine label="Slope (per day)" value={`${forecast.regression.slope}%/day`} icon={<TrendingUp className="w-3.5 h-3.5" />} color="#38bdf8" />
-                    <RegLine label="Intercept" value={String(forecast.regression.intercept)} icon={<Target className="w-3.5 h-3.5" />} color="#a855f7" />
+                    <RegLine label="Intercept" value={String(forecast.regression.intercept)} icon={<Target className="w-3.5 h-3.5" />} color="#38bdf8" />
                     <RegLine label="R² goodness-of-fit" value={String(forecast.regression.r2)} icon={<Sigma className="w-3.5 h-3.5" />} color="#10b981" />
                   </div>
                 </div>
@@ -264,13 +264,13 @@ export default function IntelligencePage() {
                       <ZAxis range={[60, 60]} />
                       <RTooltip contentStyle={{ background: 'rgba(10,10,30,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, fontSize: 12 }} cursor={{ strokeDasharray: '3 3' }} formatter={(v, n) => [`${String(v)}%`, String(n)]} labelFormatter={(l) => `${(l as { name?: string }).name ?? ''}`} wrapperStyle={{ pointerEvents: 'none' }} />
                       <Scatter data={corr?.scatter ?? []} fill="rgba(56,189,248,0.6)" />
-                      <ReferenceLine segment={corr && corr.scatter.length > 1 ? trendLine(corr.scatter) : [{ x: 0, y: 50 }, { x: 100, y: 50 }]} stroke="#d946ef" strokeWidth={2} strokeDasharray="6 3" />
+                      <ReferenceLine segment={corr && corr.scatter.length > 1 ? trendLine(corr.scatter) : [{ x: 0, y: 50 }, { x: 100, y: 50 }]} stroke="#22d3ee" strokeWidth={2} strokeDasharray="6 3" />
                     </ScatterChart>
                   </ResponsiveContainer>
                 </div>
                 {corr && (
                   <div className="flex items-center justify-between text-xs mt-3">
-                    <span className="text-slate-400">r = <b className="text-cyan-300 tabular-nums">{corr.r}</b> · t = <b className="text-fuchsia-300 tabular-nums">{corr.t}</b></span>
+                    <span className="text-slate-400">r = <b className="text-cyan-300 tabular-nums">{corr.r}</b> · t = <b className="text-cyan-300 tabular-nums">{corr.t}</b></span>
                     <span className="text-slate-500">n = {corr.n}</span>
                   </div>
                 )}

@@ -39,7 +39,7 @@ function IQRing({ value, color }: { value: number; color: string }) {
       <defs>
         <linearGradient id={`iqGrad-${color.replace('#', '')}`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor={color} />
-          <stop offset="100%" stopColor="#ec4899" />
+          <stop offset="100%" stopColor="#38bdf8" />
         </linearGradient>
       </defs>
       <circle cx="44" cy="44" r={R} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="6" />
@@ -159,7 +159,7 @@ export function PerformancePersona({ students }: { students: PerformanceStudent[
           {/* Meters */}
           <div className="flex flex-col gap-3">
             <MeterBar label="Attendance" value={s.attendancePercent} color="#10b981" icon={<CalendarCheck className="w-3 h-3" />} />
-            <MeterBar label="Academics" value={s.testPercent} color="#a855f7" icon={<BookOpen className="w-3 h-3" />} />
+            <MeterBar label="Academics" value={s.testPercent} color="#38bdf8" icon={<BookOpen className="w-3 h-3" />} />
           </div>
 
           {/* Footer chips */}

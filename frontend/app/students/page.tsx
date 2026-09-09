@@ -216,7 +216,7 @@ export default function StudentsPage() {
                 onClick={() => setView(key)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                 style={view === key
-                  ? { background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: '#fff', boxShadow: '0 0 16px -4px rgba(139,92,246,0.7)' }
+                  ? { background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)', color: '#fff', boxShadow: '0 0 16px -4px rgba(56,189,248,0.7)' }
                   : { color: '#94a3b8' }}
               >
                 <Icon className="w-3.5 h-3.5" /> {label}

@@ -19,10 +19,19 @@ const studentSchema = z.object({
   user_id:       z.number().int().positive().optional().nullable(),
 });
 
+/** Treat empty strings as "not provided" so optional fields never 422 from the UI. */
+function normalizeEmptyStrings(body: unknown): Record<string, unknown> {
+  const raw = { ...(body as Record<string, unknown>) };
+  for (const key of Object.keys(raw)) {
+    if (raw[key] === '') raw[key] = undefined;
+  }
+  return raw;
+}
+
 /** POST /api/v1/students */
 export async function createStudent(req: Request, res: Response, next: NextFunction) {
   try {
-    const data = studentSchema.parse(req.body);
+    const data = studentSchema.parse(normalizeEmptyStrings(req.body));
     for (const key of Object.keys(data)) {
       if ((data as Record<string, unknown>)[key] === '') (data as Record<string, unknown>)[key] = null;
     }
@@ -166,7 +175,7 @@ export async function getStudentById(req: Request, res: Response, next: NextFunc
 export async function updateStudent(req: Request, res: Response, next: NextFunction) {
   try {
     const id = req.params.id;
-    const data = studentSchema.partial().parse(req.body);
+    const data = studentSchema.partial().parse(normalizeEmptyStrings(req.body));
     for (const key of Object.keys(data)) {
       if ((data as Record<string, unknown>)[key] === '') (data as Record<string, unknown>)[key] = null;
     }

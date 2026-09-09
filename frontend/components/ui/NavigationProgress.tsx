@@ -68,9 +68,9 @@ export function NavigationProgress() {
             className="h-full rounded-full"
             style={{
               width: `${progress}%`,
-              background: 'linear-gradient(90deg, #6366f1, #a855f7, #6366f1)',
+              background: 'linear-gradient(90deg, #0ea5e9, #38bdf8, #0ea5e9)',
               backgroundSize: '200% 100%',
-              boxShadow: '0 0 10px rgba(99,102,241,0.7), 0 0 20px rgba(139,92,246,0.4)',
+              boxShadow: '0 0 10px rgba(56,189,248,0.7), 0 0 20px rgba(14,165,233,0.5)',
               transition: 'width 0.12s ease',
             }}
             animate={{ backgroundPosition: ['0% 0%', '200% 0%'] }}
@@ -81,8 +81,8 @@ export function NavigationProgress() {
             className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full"
             style={{
               left: `calc(${progress}% - 6px)`,
-              background: 'radial-gradient(circle, #a855f7, #6366f1)',
-              boxShadow: '0 0 8px 2px rgba(139,92,246,0.8)',
+              background: 'radial-gradient(circle, #38bdf8, #0ea5e9)',
+              boxShadow: '0 0 8px 2px rgba(56,189,248,0.8)',
               transition: 'left 0.12s ease',
             }}
           />

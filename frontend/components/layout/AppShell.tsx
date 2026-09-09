@@ -30,8 +30,8 @@ function BootScreen({ done }: { done: boolean }) {
           </div>
 
           <div className="relative flex items-center justify-center mb-8">
-            <div className="absolute w-28 h-28 rounded-full border border-indigo-500/25 boot-rings" />
-            <div className="absolute w-20 h-20 rounded-full border border-purple-500/20 boot-rings" style={{ animationDirection: 'reverse', animationDuration: '2.4s' }} />
+<div className="absolute w-28 h-28 rounded-full border border-sky-500/25 boot-rings" />
+              <div className="absolute w-20 h-20 rounded-full border border-cyan-400/20 boot-rings" style={{ animationDirection: 'reverse', animationDuration: '2.4s' }} />
             <div className="relative w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center logo-pulse" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.12)' }}>
               <Image src="/logo.png" alt="Vision Collegiate" width={56} height={56} className="object-contain logo-blend" priority />
             </div>
@@ -55,7 +55,7 @@ function BootScreen({ done }: { done: boolean }) {
               animate={{ width: '100%' }}
               transition={{ duration: 1.15, ease: 'easeInOut' }}
               className="h-full progress-shimmer"
-              style={{ background: 'linear-gradient(90deg, #4f46e5, #a855f7, #ec4899, #a855f7, #4f46e5)', backgroundSize: '200% 100%' }}
+              style={{ background: 'linear-gradient(90deg, #0369a1, #0ea5e9, #38bdf8, #0ea5e9, #0369a1)', backgroundSize: '200% 100%' }}
             />
           </div>
         </motion.div>
@@ -118,7 +118,7 @@ export function AppShell({ children }: AppShellProps) {
         <div
           className="cursor-glow"
           aria-hidden
-          style={{ background: `radial-gradient(620px circle at ${glow.x}px ${glow.y}px, rgba(99,102,241,0.07), transparent 70%)` }}
+          style={{ background: `radial-gradient(620px circle at ${glow.x}px ${glow.y}px, rgba(14,165,233,0.08), transparent 70%)` }}
         />
 
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />

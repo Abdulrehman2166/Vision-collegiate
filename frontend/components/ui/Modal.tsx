@@ -58,7 +58,7 @@ export function Modal({ open, onClose, title, children, size = 'md', description
             <div>
               <div className="flex items-center gap-2.5">
                 {/* Accent bar */}
-                <div className="w-1 h-5 rounded-full bg-gradient-to-b from-brand-400 to-purple-500 flex-shrink-0" />
+                <div className="w-1 h-5 rounded-full bg-gradient-to-b from-sky-400 to-cyan-500 flex-shrink-0" />
                 <h2 className="text-base font-bold text-slate-900 dark:text-white">{title}</h2>
               </div>
               {description && (
