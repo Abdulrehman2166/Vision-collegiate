@@ -278,13 +278,14 @@ export async function createFeeRecord(req: Request, res: Response, next: NextFun
     const st = ['paid', 'partial', 'unpaid'].includes(status) ? status : 'unpaid';
     const paidAmt = st === 'paid' ? amt : Math.min(Number(paidAmount) || 0, st === 'partial' ? amt : 0);
 
-    const due = dueDate && /^\d{4}-\d{2}-\d{2}$/.test(dueDate) ? dueDate : `${period}-10`;
+    const due = dueDate && DATE_RE.test(dueDate) ? dueDate : `${period}-10`;
+    const paidDate = paidAmt > 0 ? todayPKT() : null;
 
     const r = await pool.query(
       `INSERT INTO fee_records (student_id, amount, period, due_date, status, paid_amount, paid_date, method, remarks, created_by)
-       VALUES ($1, $2, $3, $4::date, $5, $6, CASE WHEN $6 > 0 THEN CURRENT_DATE END, $7, $8, $9)
+       VALUES ($1, $2, $3, $4::date, $5, $6, $7, $8, $9, $10)
        RETURNING id`,
-      [studentId, amt, period, due, st, paidAmt, method ?? null, remarks ?? null, req.user!.id],
+      [studentId, amt, period, due, st, paidAmt, paidDate, method ?? null, remarks ?? null, req.user!.id],
     );
     res.status(201).json({ success: true, data: { id: r.rows[0].id } });
   } catch (err) {
