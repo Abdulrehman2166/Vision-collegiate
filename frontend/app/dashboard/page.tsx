@@ -23,6 +23,7 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { getWorkingDate, getRealToday } from '@/utils/dates';
+import { karachiParts, type KarachiParts } from '@/utils/karachiTime';
 
 const QUICK_ACTIONS = [
   { label: 'Mark Attendance', icon: CalendarCheck, href: '/attendance', from: '#6366f1', to: '#4f46e5', glow: 'rgba(99,102,241,0.45)' },
@@ -38,9 +39,8 @@ const STAT_CONFIGS = [
   { key: 'pct',           title: 'Attendance',   icon: Activity,     color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.2)' },
 ];
 
-function greeting() {
-  const h = new Date().getHours();
-  return h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+function greeting(hour: number) {
+  return hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
 }
 
 /** Eased count-up hook for KPI numbers. */
@@ -80,6 +80,13 @@ export default function DashboardPage() {
   const [leaders, setLeaders] = useState<PerformanceStudent[]>([]);
   const [today, setToday]     = useState(format(new Date(), 'yyyy-MM-dd'));
   const [isWorkingDate, setIsWorkingDate] = useState(false);
+  const [pk, setPk]           = useState<KarachiParts>(() => karachiParts());
+
+  // keep the greeting in sync with the Pakistan hour (rolls over at midnight PKT)
+  useEffect(() => {
+    const t = setInterval(() => setPk(karachiParts()), 30000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => { setUser(getUser()); }, []);
 
@@ -162,7 +169,7 @@ export default function DashboardPage() {
             )}
           </p>
           <h1 className="title-beam" style={{ fontSize:'clamp(22px,4vw,30px)', fontWeight:900, letterSpacing:'-0.02em', lineHeight:1.2, margin:0, paddingBottom:'12px' }}>
-            Good {greeting()},{' '}
+            Good {greeting(pk.hour24)},{' '}
             <span className="text-gradient text-gradient-anim text-glow">
               {user?.name?.split(' ')[0] ?? 'there'}
             </span>{' '}

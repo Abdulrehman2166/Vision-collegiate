@@ -5,14 +5,14 @@
  * The backend returns it from /settings; if no override is set it falls back
  * to the real current date. The result is cached for the session.
  */
-import { format } from 'date-fns';
 import api from './api';
+import { karachiDateStr } from './karachiTime';
 
 let cached: string | null = null;
 let settingsReady: Promise<string> | null = null;
 
 function realToday(): string {
-  return format(new Date(), 'yyyy-MM-dd');
+  return karachiDateStr();
 }
 
 /** Fetch the working date from the backend (cached per session). */

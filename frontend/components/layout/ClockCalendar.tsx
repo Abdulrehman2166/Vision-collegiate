@@ -6,6 +6,10 @@ import { CalendarDays, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '@/utils/api';
 import { AnimatePresence, motion } from 'framer-motion';
 import { clsx } from 'clsx';
+import {
+  karachiParts, formatKarachiClock, karachiDateStr, karachiDateLabel, pad2,
+  type KarachiParts,
+} from '@/utils/karachiTime';
 
 interface Settings {
   workingDate: string;
@@ -28,15 +32,15 @@ function monthMatrix(year: number, month: number): (number | null)[][] {
 }
 
 export function ClockCalendar() {
-  const [now, setNow] = useState(() => new Date());
+  const [parts, setParts] = useState<KarachiParts>(() => karachiParts());
   const [workingDate, setWorkingDate] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [view, setView] = useState(() => ({ y: new Date().getFullYear(), m: new Date().getMonth() }));
   const ref = useRef<HTMLDivElement>(null);
 
-  // live clock
+  // live clock — Asia/Karachi (PKT) regardless of device timezone
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
+    const t = setInterval(() => setParts(karachiParts()), 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -57,9 +61,9 @@ export function ClockCalendar() {
     return () => document.removeEventListener('mousedown', h);
   }, [open]);
 
-  const wdParts = (workingDate ?? format(now, 'yyyy-MM-dd')).split('-').map(Number);
+  const wdParts = (workingDate ?? karachiDateStr(parts)).split('-').map(Number);
   const wdDate = new Date(wdParts[0], wdParts[1] - 1, wdParts[2]);
-  const isWorkingReal = sameDay(wdDate, now);
+  const isWorkingReal = (workingDate ?? karachiDateStr(parts)) === karachiDateStr(parts);
 
   const shiftMonth = (delta: number) => {
     setView((v) => {
@@ -86,8 +90,7 @@ export function ClockCalendar() {
         <span className="flex items-center gap-1.5">
           <Clock className="w-3.5 h-3.5" style={{ color: '#818cf8' }} />
           <span className="font-mono text-sm font-bold text-white tabular-nums">
-            {format(now, 'hh:mm:ss')}
-            <span className="text-[10px] text-slate-500 ml-0.5 uppercase">{format(now, 'a')}</span>
+            {formatKarachiClock(parts)}
           </span>
         </span>
         <span className="h-4 w-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
@@ -95,8 +98,8 @@ export function ClockCalendar() {
           <CalendarDays className="w-3.5 h-3.5" style={{ color: '#a855f7' }} />
           <span className="text-xs font-semibold text-slate-200 whitespace-nowrap">
             {isWorkingReal ? 'Today · ' : 'Working · '}
-            {format(wdDate, 'dd MMM')}
-            <span className="hidden lg:inline text-slate-500"> · {format(wdDate, 'yyyy')}</span>
+            {karachiDateLabel(parts)}
+            <span className="hidden lg:inline text-slate-500"> · PKT</span>
           </span>
         </span>
       </button>
@@ -143,7 +146,7 @@ export function ClockCalendar() {
               {weeks.map((week, wi) => (
                 <div key={wi} className="grid grid-cols-7 gap-1 my-0.5">
                   {week.map((d, di) => {
-                    const todayCell = d !== null && view.y === now.getFullYear() && view.m === now.getMonth() && d === now.getDate();
+                    const todayCell = d !== null && view.y === parts.year && view.m === parts.month && d === parts.day;
                     const workCell = d !== null && view.y === wdParts[0] && view.m === wdParts[1] - 1 && d === wdParts[2];
                     return (
                       <div
@@ -199,8 +202,4 @@ export function ClockCalendar() {
       </AnimatePresence>
     </div>
   );
-}
-
-function sameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }

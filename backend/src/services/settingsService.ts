@@ -5,6 +5,20 @@
  */
 import { pool } from '../db';
 
+/** Today's date in Asia/Karachi (PKT, UTC+5) as YYYY-MM-DD — drives "today" everywhere. */
+function pakistanToday(): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Karachi', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  let y = '', m = '', d = '';
+  for (const p of parts) {
+    if (p.type === 'year') y = p.value;
+    if (p.type === 'month') m = p.value;
+    if (p.type === 'day') d = p.value;
+  }
+  return `${y}-${m}-${d}`;
+}
+
 export async function getSetting(key: string): Promise<string | null> {
   const { rows } = await pool.query(
     'SELECT value FROM app_settings WHERE key = $1',
@@ -16,7 +30,7 @@ export async function getSetting(key: string): Promise<string | null> {
 export async function getWorkingDate(): Promise<string> {
   const value = await getSetting('working_date');
   if (value) return value;
-  return new Date().toISOString().split('T')[0];
+  return pakistanToday();
 }
 
 export async function setWorkingDate(date: string | null): Promise<void> {
