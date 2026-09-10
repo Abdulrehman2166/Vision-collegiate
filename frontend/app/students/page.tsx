@@ -233,7 +233,7 @@ export default function StudentsPage() {
 
       {/* Filters */}
       <div className="card p-4 mb-5 flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-48">
+        <div className="relative flex-1 min-w-full sm:min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             className="input pl-9"
@@ -242,11 +242,11 @@ export default function StudentsPage() {
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
-        <select className="select w-36" value={fGrade} onChange={(e) => { setFGrade(e.target.value); setPage(1); }}>
+        <select className="select w-full sm:w-36" value={fGrade} onChange={(e) => { setFGrade(e.target.value); setPage(1); }}>
           <option value="">All grades</option>
           {['Juniors','IX','X','XI','XII'].map((g) => <option key={g} value={g}>{g}</option>)}
         </select>
-        <select className="select w-44" value={fBatch} onChange={(e) => { setFBatch(e.target.value); setPage(1); }}>
+        <select className="select w-full sm:w-44" value={fBatch} onChange={(e) => { setFBatch(e.target.value); setPage(1); }}>
           <option value="">All batches</option>
           {batches.map((b) => <option key={b.id} value={String(b.id)}>{b.name} — Grade {b.grade}{b.stream ? ` (${b.stream})` : ''}</option>)}
         </select>

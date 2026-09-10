@@ -350,7 +350,7 @@ export default function AttendancePage() {
                 <p className="text-xs text-slate-500">Multi-day attendance for the selected batch</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="label">From</label>
                 <input type="date" className="input w-full" value={rangeFrom} onChange={(e) => setRangeFrom(e.target.value)} />

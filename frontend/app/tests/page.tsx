@@ -351,10 +351,12 @@ export default function TestsPage() {
 
       {/* Master Weekly Test Schedule */}
       <div className="card p-4 sm:p-5 mb-5">
-        <div className="flex items-center gap-2 mb-4">
-          <CalendarRange className="w-5 h-5 text-amber-400" />
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-wide">MASTER WEEKLY TEST SCHEDULE</h2>
-          <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
+          <div className="flex items-center gap-2">
+            <CalendarRange className="w-5 h-5 text-amber-400" />
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-wide">MASTER WEEKLY TEST SCHEDULE</h2>
+          </div>
+          <span className="text-xs text-slate-500 dark:text-slate-400 sm:ml-auto">
             3 tests/week · Week 4 = Grand Revision Test {canEditSchedule && (
               <button onClick={() => { setScheduleDraft(schedule); setScheduleOpen(true); }} className="ml-2 text-xs btn-secondary py-1 px-3">Edit</button>
             )}
@@ -425,7 +427,7 @@ export default function TestsPage() {
                 <p className="text-xs text-slate-500">All students: rank, weekly trend, best &amp; weak subjects</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="label">Month</label>
                 <input type="month" className="input w-full" value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} />
@@ -453,7 +455,7 @@ export default function TestsPage() {
                 <p className="text-xs text-slate-500">Per-student detail: tests, subjects &amp; weekly trend</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="label">Month</label>
                 <input type="month" className="input w-full" value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} />
@@ -712,8 +714,8 @@ export default function TestsPage() {
 
       {/* ── PDF Preview Modal ── */}
       {showPdfModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-700">
               <h3 className="font-semibold text-slate-900 dark:text-white">{analyticsTitle}</h3>
               <button onClick={() => setShowPdfModal(false)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
@@ -726,13 +728,13 @@ export default function TestsPage() {
                   key={pdfUrl}
                   src={pdfUrl}
                   title="Analytics Report"
-                  className="w-full h-full min-h-[500px] border-0 rounded-lg"
+                  className="w-full min-h-[55vh] sm:min-h-[500px] border-0 rounded-lg"
                 />
               ) : (
                 <iframe
                   srcDoc={pdfContent}
                   title="Analytics Report"
-                  className="w-full h-full min-h-[500px] border-0 rounded-lg"
+                  className="w-full min-h-[55vh] sm:min-h-[500px] border-0 rounded-lg"
                 />
               )}
             </div>

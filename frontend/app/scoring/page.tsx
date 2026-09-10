@@ -206,7 +206,7 @@ export default function ScoringPage() {
         <div className="card p-4 flex flex-wrap items-end gap-4">
           <div>
             <label className="label">Batch / Class</label>
-            <select className="select w-56" value={batchId} onChange={(e) => setBatchId(e.target.value)}>
+            <select className="select w-full sm:w-56" value={batchId} onChange={(e) => setBatchId(e.target.value)}>
               <option value="">— Select batch —</option>
               {batches.map((b) => (
                 <option key={b.id} value={String(b.id)}>{b.name} — {b.grade}{b.stream ? ` (${b.stream})` : ''}</option>
@@ -239,7 +239,7 @@ export default function ScoringPage() {
         ) : (
           <div className="overflow-x-auto pb-2">
             {/* Day column headers */}
-            <div className="grid gap-3 min-w-fit" style={{ gridTemplateColumns: `repeat(${weekDays.length}, minmax(220px, 1fr))` }}>
+            <div className="grid gap-3 min-w-fit" style={{ gridTemplateColumns: `repeat(${weekDays.length}, minmax(180px, 1fr))` }}>
               {weekDays.map((slot) => (
                 <DayColumn
                   key={`${slot.day}-${slot.subject}`}
@@ -302,8 +302,8 @@ export default function ScoringPage() {
 
       {/* ── PDF Preview Modal ── */}
       {showPdfModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-700">
               <h3 className="font-semibold text-slate-900 dark:text-white">{pdfTitle}</h3>
               <button onClick={() => setShowPdfModal(false)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
@@ -316,7 +316,7 @@ export default function ScoringPage() {
                   key={pdfUrl}
                   src={pdfUrl}
                   title="Analytics Report"
-                  className="w-full h-full min-h-[500px] border-0 rounded-lg"
+                  className="w-full min-h-[55vh] sm:min-h-[500px] border-0 rounded-lg"
                 />
               ) : (
                 <p className="py-10 text-center text-slate-500">Report preview unavailable — use the download option below.</p>

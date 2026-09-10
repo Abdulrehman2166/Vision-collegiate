@@ -242,8 +242,8 @@ export default function DashboardPage() {
           <motion.div
             initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
             transition={{ duration:0.4, delay:0.2 }}
-            className="card"
-            style={{ padding:'24px', gridColumn:'span 2' }}
+            className="card lg:col-span-2"
+            style={{ padding:'24px' }}
           >
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'20px', flexWrap:'wrap', gap:'12px' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>

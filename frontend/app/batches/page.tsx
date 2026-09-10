@@ -130,7 +130,7 @@ export default function BatchesPage() {
                       <div className="p-2.5 rounded-xl bg-brand-50 dark:bg-brand-900/20">
                         <GraduationCap className="w-5 h-5 text-brand-600 dark:text-brand-400" />
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                         {isAdmin && (
                           <>
                             <button onClick={() => openEdit(b)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">

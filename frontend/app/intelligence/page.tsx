@@ -121,7 +121,7 @@ export default function IntelligencePage() {
             <p className="text-sm text-slate-400">Forecasting, distributions, correlation & risk — computed live</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <select className="select w-52" value={batchId} onChange={(e) => setBatchId(e.target.value)}>
+            <select className="select w-full sm:w-52" value={batchId} onChange={(e) => setBatchId(e.target.value)}>
               <option value="">All batches</option>
               {batches.map((b) => <option key={b.id} value={String(b.id)}>{b.name} — {b.grade}{b.stream ? ` (${b.stream})` : ''}</option>)}
             </select>
@@ -301,8 +301,8 @@ export default function IntelligencePage() {
                     <tr className="border-b border-slate-200 dark:border-white/[0.07]">
                       <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">Student</th>
                       <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">Level</th>
-                      <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 w-56">Risk Gauge</th>
-                      <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 w-72">Drivers</th>
+                      <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 w-36 sm:w-56">Risk Gauge</th>
+                      <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 w-40 sm:w-72">Drivers</th>
                       <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-500">Attend.</th>
                       <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-500">Avg</th>
                       <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-500">Trend</th>

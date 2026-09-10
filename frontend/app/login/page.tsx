@@ -243,7 +243,7 @@ function LoginContent() {
           style={{ background: 'linear-gradient(90deg, transparent, rgba(56,189,248,0.7), rgba(14,165,233,0.9), rgba(56,189,248,0.7), transparent)' }}
         />
 
-        <div className="p-8">
+        <div className="p-6 sm:p-8">
           <div className="mb-7">
             <div className="flex items-center gap-2 mb-1">
               <Shield className="w-3.5 h-3.5 text-sky-400" />
@@ -359,7 +359,7 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <div
-      className="min-h-screen flex items-center justify-center relative overflow-hidden p-4"
+      className="min-h-screen flex items-center justify-center relative overflow-x-hidden p-4"
       style={{ background: 'linear-gradient(135deg, #04040f 0%, #08082a 40%, #05051a 100%)' }}
     >
       <StaticOrbs />

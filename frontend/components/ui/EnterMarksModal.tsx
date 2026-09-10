@@ -321,7 +321,7 @@ export function EnterMarksModal({ open, test, onClose, onSaved }: Props) {
                       <span className="text-[11px] text-amber-500/80">Not entered</span>
                     )}
                   </div>
-                  <div className="grid grid-cols-[1fr_96px_96px_auto] gap-2 items-end">
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_96px_96px_auto] gap-2 items-end">
                     <div>
                       <input
                         list="marks-subjects"

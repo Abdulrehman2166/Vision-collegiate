@@ -209,8 +209,8 @@ export default function FinancePage() {
             <p className="text-sm text-slate-400">Student fees, expenses and profit & loss — full control</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <input type="month" className="input w-44" value={month} onChange={(e) => setMonth(e.target.value || currentMonth())} />
-            <select className="select w-52" value={batchId} onChange={(e) => setBatchId(e.target.value)}>
+            <input type="month" className="input w-full sm:w-44" value={month} onChange={(e) => setMonth(e.target.value || currentMonth())} />
+            <select className="select w-full sm:w-52" value={batchId} onChange={(e) => setBatchId(e.target.value)}>
               <option value="">All batches</option>
               {batches.map((b) => <option key={b.id} value={String(b.id)}>{b.name} — {b.grade}{b.stream ? ` (${b.stream})` : ''}</option>)}
             </select>
@@ -373,7 +373,7 @@ export default function FinancePage() {
                               {recs.map((r) => (
                                 <div key={r.id} className="flex items-center gap-1.5">
                                   <span className={`badge ${STATUS_BADGE[r.status] ?? 'badge-gray'}`}>{r.status}</span>
-                                  <span className="text-[10px] text-slate-500 tabular-nums">{money(r.amount)}{r.remarks ? ` · ${r.remarks}` : ''}</span>
+                                  <span className="text-[10px] text-slate-500 tabular-nums truncate max-w-36">{money(r.amount)}{r.remarks ? ` · ${r.remarks}` : ''}</span>
                                   {r.status !== 'paid' && (
                                     <button onClick={() => markPaid(r)} title="Mark paid" className="p-0.5 rounded text-slate-500 hover:text-emerald-400"><CheckCircle2 className="w-3 h-3" /></button>
                                   )}
