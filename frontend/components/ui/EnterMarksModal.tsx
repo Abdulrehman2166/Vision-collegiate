@@ -196,10 +196,13 @@ export function EnterMarksModal({ open, test, onClose, onSaved }: Props) {
       onClose={onClose}
       title={test ? `Enter Marks – ${test.title}` : 'Enter Marks'}
       size="lg"
-      description={test
-        ? `${test.subject} · up to ${test.total_marks} marks` +
+      description={sheet && test
+        ? `Grade ${sheet.test.grade} · ${test.subject} · up to ${test.total_marks} marks` +
           (test.test_date ? ` · ${format(new Date(test.test_date), 'dd MMM yyyy')}` : '')
-        : 'Loading…'}
+        : (test
+          ? `${test.subject} · up to ${test.total_marks} marks` +
+            (test.test_date ? ` · ${format(new Date(test.test_date), 'dd MMM yyyy')}` : '')
+          : 'Loading…')}
     >
       {loading ? (
         <div className="py-10 flex justify-center"><Spinner /></div>
@@ -311,7 +314,7 @@ export function EnterMarksModal({ open, test, onClose, onSaved }: Props) {
                         ? <span className="w-5 h-5 rounded-full bg-emerald-500/90 flex items-center justify-center flex-shrink-0"><Check className="w-3 h-3 text-white" /></span>
                         : <span className="w-5 h-5 rounded-full bg-white/[0.04] border border-slate-600 flex items-center justify-center flex-shrink-0 text-[10px] text-slate-500">#{i + 1}</span>}
                       <p className="text-sm font-semibold truncate">{s.studentName}</p>
-                      {s.rollNumber && <span className="text-[11px] text-slate-500">{s.rollNumber}</span>}
+                      {s.rollNumber && <span className="text-[11px] text-slate-500 flex-shrink-0">#{s.rollNumber}</span>}
                     </div>
                     {marked ? (
                       <span className="text-[11px] text-emerald-500 font-medium flex items-center gap-1">

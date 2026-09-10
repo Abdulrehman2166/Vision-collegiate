@@ -38,7 +38,7 @@ interface CorrShape {
 }
 
 interface AtRiskShape {
-  studentId: number; name: string; rollNumber: string; batchName: string;
+  studentId: number; name: string; rollNumber: string; batchName: string; grade: string;
   risk: number; level: 'critical' | 'high' | 'watch';
   attendance: number; average: number; slope: number; testsTaken: number;
   reasons: string[];
@@ -312,7 +312,7 @@ export default function IntelligencePage() {
                     {atRisk.map((s) => (
                       <tr key={s.studentId}>
                         <td className="px-3 py-2.5">
-                          <p className="font-semibold text-slate-100">{s.name}{s.rollNumber && <span className="ml-1 text-[10px] text-slate-500">#{s.rollNumber}</span>}</p>
+                          <p className="font-semibold text-slate-100">{s.name}{s.rollNumber && <span className="ml-1 text-[10px] text-slate-500">#{s.rollNumber}</span>}{s.grade && <span className="ml-1.5 text-[10px] text-slate-500">Grade {s.grade}</span>}</p>
                           <p className="text-[10px] text-slate-500">{s.batchName}</p>
                         </td>
                         <td className="px-3 py-2.5"><span className={`badge ${RISK_LEVELS[s.level]}`}>{s.level}</span></td>

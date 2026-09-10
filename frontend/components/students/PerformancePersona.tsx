@@ -124,7 +124,7 @@ export function PerformancePersona({ students }: { students: PerformanceStudent[
               <div className="min-w-0">
                 <p className="text-sm font-bold text-white truncate">{s.name}</p>
                 <p className="text-[11px] text-slate-500 truncate">
-                  {s.rollNumber ? `#${s.rollNumber} · ` : ''}{s.batchName ?? `Grade ${s.grade}`}
+                  Grade {s.grade}{s.stream ? ` (${s.stream})` : ''}{s.rollNumber ? ` · #${s.rollNumber}` : ''}
                 </p>
               </div>
             </div>

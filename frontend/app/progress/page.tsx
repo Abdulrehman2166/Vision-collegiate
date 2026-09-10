@@ -126,7 +126,7 @@ export default function ProgressPage() {
                       : { border: '1px solid rgba(255,255,255,0.08)' }
                   }
                 >
-                  <UserRound className="w-3.5 h-3.5" /> {s.name}
+                  <UserRound className="w-3.5 h-3.5" /> {s.name}<span className="font-medium text-slate-500">· G{s.grade}{s.rollNumber ? ` · #${s.rollNumber}` : ''}</span>
                 </button>
               ))}
             </div>

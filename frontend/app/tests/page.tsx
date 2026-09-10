@@ -74,7 +74,7 @@ export default function TestsPage() {
   const [reportMonth, setReportMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [reportBatch, setReportBatch] = useState('');
   const [analyticsStudent, setAnalyticsStudent] = useState('');
-  const [studentOptions, setStudentOptions]     = useState<{ id: number; name: string; roll_number: string | null }[]>([]);
+  const [studentOptions, setStudentOptions]     = useState<{ id: number; name: string; roll_number: string | null; grade: string; stream: string | null }[]>([]);
   const [analyticsTitle, setAnalyticsTitle]     = useState('Monthly Test Analytics');
   const [pdfUrl,       setPdfUrl]      = useState('');
   const [pdfContent,   setPdfContent]  = useState('');
@@ -126,7 +126,7 @@ export default function TestsPage() {
 
   useEffect(() => {
     const stId = reportBatch ? `batchId=${reportBatch}&` : '';
-    api.get<ApiResponse<{ id: number; name: string; roll_number: string | null }[]>>(
+    api.get<ApiResponse<{ id: number; name: string; roll_number: string | null; grade: string; stream: string | null }[]>>(
       `/students?${stId}limit=200&status=active`,
     )
       .then((r) => {
@@ -464,7 +464,7 @@ export default function TestsPage() {
                 <label className="label">Student</label>
                 <select className="select w-full" value={analyticsStudent} onChange={(e) => setAnalyticsStudent(e.target.value)}>
                   <option value="">— Select —</option>
-                  {studentOptions.map((s) => <option key={s.id} value={String(s.id)}>{s.name}{s.roll_number ? ` (${s.roll_number})` : ''}</option>)}
+                  {studentOptions.map((s) => <option key={s.id} value={String(s.id)}>{s.name}{s.roll_number ? ` (#${s.roll_number})` : ''} · Grade {s.grade}{s.stream ? ` (${s.stream})` : ''}</option>)}
                 </select>
               </div>
             </div>

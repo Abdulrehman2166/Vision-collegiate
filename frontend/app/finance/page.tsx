@@ -361,7 +361,7 @@ export default function FinancePage() {
                       return (
                         <tr key={s.studentId}>
                           <td className="px-3 py-2.5">
-                            <p className="font-semibold text-slate-100">{s.name}{s.rollNumber && <span className="ml-1 text-[10px] text-slate-500">#{s.rollNumber}</span>}</p>
+                            <p className="font-semibold text-slate-100">{s.name}<span className="ml-1.5 text-[10px] text-slate-500">Grade {s.grade}</span>{s.rollNumber && <span className="ml-1.5 text-[10px] text-slate-500">#{s.rollNumber}</span>}</p>
                           </td>
                           <td className="px-3 py-2.5 text-xs text-slate-500">{s.batchName}</td>
                           <td className="px-3 py-2.5 text-right text-xs font-bold text-cyan-300 tabular-nums">{money(s.expected)}</td>

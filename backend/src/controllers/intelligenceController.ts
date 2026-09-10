@@ -252,16 +252,16 @@ export async function getAtRisk(req: Request, res: Response, next: NextFunction)
     }
 
     const nameRes = await pool.query(
-      `SELECT s.id, s.name, COALESCE(s.roll_number,'') AS "rollNumber", b.name AS "batchName"
+      `SELECT s.id, s.name, COALESCE(s.roll_number,'') AS "rollNumber", b.name AS "batchName", b.grade AS grade
        FROM students s JOIN batches b ON b.id = s.batch_id
        WHERE s.status = 'active' ${batchFilter}`,
       batchId ? [batchId] : [],
     );
-    const names = new Map<number, { name: string; rollNumber: string; batchName: string }>(
-      nameRes.rows.map((r) => [Number(r.id), { name: r.name, rollNumber: r.rollNumber, batchName: r.batchName }]),
+    const names = new Map<number, { name: string; rollNumber: string; batchName: string; grade: string }>(
+      nameRes.rows.map((r) => [Number(r.id), { name: r.name, rollNumber: r.rollNumber, batchName: r.batchName, grade: r.grade }]),
     );
 
-    const out: { studentId: number; name: string; rollNumber: string; batchName: string; risk: number; level: string; attendance: number; average: number; slope: number; testsTaken: number; reasons: string[] }[] = [];
+    const out: { studentId: number; name: string; rollNumber: string; batchName: string; grade: string; risk: number; level: string; attendance: number; average: number; slope: number; testsTaken: number; reasons: string[] }[] = [];
 
     for (const s of students) {
       const id = Number(s.id);
@@ -285,12 +285,13 @@ export async function getAtRisk(req: Request, res: Response, next: NextFunction)
       risk = Math.max(0, Math.min(100, risk));
 
       if (risk >= 25) {
-        const info = names.get(id) ?? { name: 'Student', rollNumber: '', batchName: '' };
+        const info = names.get(id) ?? { name: 'Student', rollNumber: '', batchName: '', grade: '' };
         out.push({
           studentId: id,
           name: info.name,
           rollNumber: info.rollNumber,
           batchName: info.batchName,
+          grade: info.grade,
           risk,
           level: risk >= 60 ? 'critical' : risk >= 40 ? 'high' : 'watch',
           attendance,
