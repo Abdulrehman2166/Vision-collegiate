@@ -735,3 +735,12 @@
     50%      { opacity: 0.45; }
   }
 }
+
+/* Prevent iOS Safari auto-zoom when focusing any form field by keeping
+   inputs/selects/textareas at 16px on phones. Desktop keeps its 14px. */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important;
+    touch-action: manipulation;
+  }
+}
