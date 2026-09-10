@@ -443,7 +443,7 @@ function ExpenseForm({ defaultDate, categories, saving, onSave, onClose }: {
       </div>
       <div><label className="label">Date</label><input type="date" className="input w-full" value={date} onChange={(e) => setDate(e.target.value)} /></div>
       <div><label className="label">Notes</label><textarea className="input w-full min-h-[70px]" value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
-      <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-white/[0.07]">
+      <div className="form-actions">
         <button onClick={onClose} className="btn-secondary text-sm">Cancel</button>
         <button onClick={submit} disabled={saving} className="btn-primary text-sm">{saving ? <><Spinner size="sm" light /> Saving…</> : 'Save Expense'}</button>
       </div>
@@ -499,7 +499,7 @@ function FeeForm({ defaultPeriod, saving, onSave, onClose }: {
         </>
       )}
       <div><label className="label">Remarks</label><textarea className="input w-full min-h-[60px]" value={remarks} onChange={(e) => setRemarks(e.target.value)} /></div>
-      <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-white/[0.07]">
+      <div className="form-actions">
         <button onClick={onClose} className="btn-secondary text-sm">Cancel</button>
         <button onClick={submit} disabled={saving} className="btn-primary text-sm">{saving ? <><Spinner size="sm" light /> Saving…</> : 'Save Fee'}</button>
       </div>

@@ -376,8 +376,8 @@ export function EnterMarksModal({ open, test, onClose, onSaved }: Props) {
             )}
           </div>
 
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] text-slate-500">Enter marks, hit Enter or Save. Subject &amp; out-of may differ per student.</p>
+          <div className="form-actions form-actions-spread">
+            <p className="text-[11px] text-slate-500 self-center">Enter marks, hit Enter or Save. Subject &amp; out-of may differ per student.</p>
             <button onClick={onClose} className="btn-secondary text-sm">Done</button>
           </div>
         </div>

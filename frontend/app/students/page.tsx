@@ -326,7 +326,7 @@ export default function StudentsPage() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="form-actions">
             <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary">Cancel</button>
             <button type="submit" disabled={submitting} className="btn-primary">
               {submitting ? 'Saving…' : editStudent ? 'Update' : 'Create'}

@@ -39,7 +39,7 @@ export function Modal({ open, onClose, title, children, size = 'md', description
       style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(16px)' }}
     >
       <div className={clsx(
-        'w-full max-h-[92vh] flex flex-col animate-slide-up',
+        'w-full max-h-dvh-92 flex flex-col animate-slide-up',
         'rounded-t-3xl sm:rounded-2xl overflow-hidden',
         sizeMap[size],
         // dark glass

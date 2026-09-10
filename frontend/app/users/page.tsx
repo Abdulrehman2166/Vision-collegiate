@@ -142,7 +142,7 @@ export default function UsersPage() {
             </div>
             {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>}
           </div>
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="form-actions">
             <button type="button" onClick={() => setOpen(false)} className="btn-secondary">Cancel</button>
             <button type="submit" disabled={saving} className="btn-primary">
               {saving ? 'Creating…' : 'Create Account'}

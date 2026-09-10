@@ -181,7 +181,7 @@ export default function BatchesPage() {
             <input type="checkbox" id="is_active" {...register('is_active')} className="rounded" defaultChecked />
             <label htmlFor="is_active" className="text-sm text-slate-700 dark:text-slate-300">Active batch</label>
           </div>
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="form-actions">
             <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary">Cancel</button>
             <button type="submit" disabled={submitting} className="btn-primary">
               {submitting ? 'Saving…' : editBatch ? 'Update' : 'Create'}

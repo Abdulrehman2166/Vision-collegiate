@@ -276,7 +276,7 @@ export default function ScoringPage() {
               {['Physics','Chemistry','Biology','Mathematics','English','Urdu','Islamiat','Pak Studies','Computer Science','Computer','Accounting','Business','Economics','Statistics'].map((s) => <option key={s} value={s} />)}
             </datalist>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label">Date *</label>
               <input type="date" className="input w-full" value={quickDate} onChange={(e) => setQuickDate(e.target.value)} />
@@ -289,7 +289,7 @@ export default function ScoringPage() {
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
             Batch: <span className="font-semibold text-slate-700 dark:text-slate-300">{selected ? `${selected.name} (${selected.grade}${selected.stream ? ' – ' + selected.stream : ''})` : '—'}</span>
           </div>
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+          <div className="form-actions">
             <button onClick={() => setQuickOpen(false)} className="btn-secondary text-sm">Cancel</button>
             <button onClick={quickCreate} disabled={creating} className="btn-primary text-sm">
               {creating ? <><Spinner size="sm" light /> Creating…</> : <>Create & Enter Marks</>}
@@ -303,7 +303,7 @@ export default function ScoringPage() {
       {/* ── PDF Preview Modal ── */}
       {showPdfModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] max-h-dvh-90 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-700">
               <h3 className="font-semibold text-slate-900 dark:text-white">{pdfTitle}</h3>
               <button onClick={() => setShowPdfModal(false)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">

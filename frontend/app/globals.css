@@ -744,3 +744,38 @@
     touch-action: manipulation;
   }
 }
+
+/* Dynamic viewport height for modals/sheets so mobile browser chrome
+   (address bar / keyboard) never clips the form. dvh falls back to vh. */
+.max-h-dvh-90 { max-height: 90vh; max-height: 90dvh; }
+.max-h-dvh-92 { max-height: 92vh; max-height: 92dvh; }
+
+/* Sticky action row for modal forms — keeps buttons visible on phones
+   even when the on-screen keyboard is open. */
+.form-actions {
+  position: sticky;
+  bottom: 0;
+  margin-left: -1.25rem;
+  margin-right: -1.25rem;
+  padding: 0.75rem 1.25rem 0.25rem;
+  background: #ffffff;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+  z-index: 10;
+}
+html.dark .form-actions {
+  background: #111128;
+  border-top-color: rgba(255, 255, 255, 0.07);
+}
+.form-actions-spread {
+  justify-content: space-between;
+}
+@media (min-width: 640px) {
+  .form-actions {
+    margin-left: -1.5rem;
+    margin-right: -1.5rem;
+    padding: 0.75rem 1.5rem 0.25rem;
+  }
+}

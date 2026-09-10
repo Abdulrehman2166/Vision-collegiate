@@ -551,7 +551,7 @@ export default function TestsPage() {
                   <input className="input" placeholder="CBSE, ICSE, State…" {...register('board_pattern')} />
                 </div>
               </div>
-              <div className="flex justify-end pt-2">
+              <div className="form-actions">
                 <button type="button" onClick={() => setStep(2)} className="btn-primary">
                   Next: Add Questions →
                 </button>
@@ -637,7 +637,7 @@ export default function TestsPage() {
                 <Plus className="w-4 h-4" /> Add Question
               </button>
 
-              <div className="flex justify-between pt-4 mt-2 border-t border-slate-200 dark:border-slate-700">
+              <div className="form-actions form-actions-spread">
                 <button type="button" onClick={() => setStep(1)} className="btn-secondary">
                   ← Back
                 </button>
@@ -703,7 +703,7 @@ export default function TestsPage() {
               </div>
             ))}
           </div>
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+          <div className="form-actions">
             <button onClick={() => setScheduleOpen(false)} className="btn-secondary text-sm">Cancel</button>
             <button onClick={saveSchedule} disabled={savingSchedule} className="btn-primary text-sm">
               {savingSchedule ? <><Spinner size="sm" light /> Saving…</> : 'Save Schedule'}
@@ -715,7 +715,7 @@ export default function TestsPage() {
       {/* ── PDF Preview Modal ── */}
       {showPdfModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] max-h-dvh-90 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-700">
               <h3 className="font-semibold text-slate-900 dark:text-white">{analyticsTitle}</h3>
               <button onClick={() => setShowPdfModal(false)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
